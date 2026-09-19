@@ -308,7 +308,7 @@ assert origins for living communities who have their own account of where they c
 | **5 — Better inference** | Continuous phylogeography; render the posterior, not a line. | ~3–4 weeks |
 | **6 — Ancestry components** | qpAdm proportions as flowing ribbons — the modern framing. | open-ended |
 | **+ Evidence layers** | Radiocarbon, places, routes, language, societies, pathogens; coverage views; cross-layer query with cited export. | **done** |
-| **7 — Stories** | Guided tours of the set pieces; "find my line"; share links. | ~2 weeks |
+| **7 — Stories** | Guided tours of the set pieces: **done** as Journeys, eight camera flights over the reference backbone with its own notes as captions (see "The camera" in the README). "Find my line" and links that open on a story are not built. | ~1 week left |
 
 Running alongside these, the non-genetic data layers have their own sequence — radiocarbon
 first, then deep-time archaeology, then individual isotope mobility. See the layers document.

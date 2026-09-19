@@ -38,8 +38,11 @@ is coming from the guess.
   placement estimator and the detail cut. *Selection* is the dossier for whatever you clicked: a
   clade's route from the root, a record's citation, and every loaded layer within a radius,
   exportable as CSV. *Sources* carries the licences and the coverage chart.
-- **Click** anything on the globe to inspect it; hover to identify it. `Esc` clears the selection,
-  `L` hides the panel, `?` opens the guide.
+- **Journeys**, at the top of the *Lineages* tab, are eight migrations the camera flies by itself
+  while the clock runs: pick one, or play them all as a tour. Drag or scroll at any point to take
+  the camera back.
+- **Click** anything on the globe to inspect it; hover to identify it. `Esc` stops a flight, then
+  clears the selection; `L` hides the panel, `?` opens the guide.
 - **The URL is the view.** Marker, tree, placement, selection, time, camera and layers all live in
   the hash, so a link reproduces exactly what you were looking at. The link button copies it.
 
@@ -109,18 +112,54 @@ Lakes are today's at every date.
 
 ## The camera
 
-**Fly the route** runs the camera along a spline through the waypoints: one cubic Bézier per leg,
-evaluated with nested slerps so that it stays on the sphere. Where a leg's tangent lines up with
-the great circle, the curve is exactly the arc's own path, so the growing tip sits under the
-camera. Where the route turns, the corner is rounded. The camera climbs on long legs and settles
-over each arrival, and the clock runs in step with it. A comet head marks the tip, and each
-waypoint gets a ring on the ground as the route reaches it. [`docs/fly-route.mp4`](docs/fly-route.mp4)
-is twenty seconds of it: Y-DNA Q1b1a3, 16,553 km from a root beside the Laurentide ice.
+**Fly the route** is shot like a short film. An establishing shot frames the whole route, drawn in
+full. The camera then dives to where the route begins while the clock runs back to that date, tilts
+toward the horizon and chases the growing arc leg by leg, climbing on long legs and turning with
+the route. It circles the last waypoint and pulls back out. The clock runs in step throughout, so
+the sea and the ice under the camera are the ones for that date: the flight into the Americas
+reaches Beringia at 15,500 BP, with the sea 92 m down and the land bridge still dry.
 
-Press play with a lineage selected and the camera follows the growing tip. It eases its speed
-under an acceleration cap, so a chase that starts far from the tip still starts from rest. Any
-drag, wheel or pinch hands the camera back at once. With reduced motion set, flights become cuts
-and nothing moves by itself.
+![The flight into the Americas arriving over the Bering land bridge at 15,500 BP, seen toward the horizon, with the journey's caption](docs/journey-beringia.jpg)
+
+**Journeys** are eight stretches of the reference backbone that go somewhere: out of Africa to
+Sahul, into the Americas, north after the ice, the first farmers into Europe, the steppe to the
+Atlantic, the Bantu expansion, Siberia to the Baltic, across the Pacific. They are the set pieces
+the design document planned its schedule around. At each waypoint the camera stops for as long as
+the backbone's note on that clade takes to read, turning slowly about it, and a caption shows the
+note. The names follow the reference tree's own titles, the notes are its blurbs, and the list
+reads its dates and distances from `d/tree_ref_*.json` when the page loads. These are textbook
+routes with hand-placed positions, not sampled data, and the caption says so for as long as it is
+on screen. A clade from the observed tree flies the same way from its card. It has no notes, so
+it flows through its waypoints without stopping and rounds the corners.
+[`docs/journey-americas.mp4`](docs/journey-americas.mp4) is the flight into the Americas, start
+to finish.
+
+The focus runs along a spline through the waypoints: one cubic Bézier per leg, evaluated with
+nested slerps so that it stays on the sphere. Where a leg's tangent lines up with the great
+circle, the curve is exactly the arc's own path, so the growing tip holds its place in the frame.
+On the Americas flight it stays within 4.4% of the frame height of where the design puts it, on
+every frame of every leg. A comet head marks the tip, and each waypoint gets a ring on the ground
+as the route reaches it.
+
+The rig behind this is three numbers on top of the plain camera: a tilt toward the horizon, a
+heading (which way along the ground is up the screen) and a bank into turns. Flights only set
+targets. Damped springs do the moving, and they chase the targets through a short lag, so a
+target that jumps ramps the turn in where a bare spring would kick. At rest the rig is (0, 0, 0)
+and the view is the plain north-up camera, exactly. Every flight also carries "up the screen"
+along its path before the heading spring pulls it back toward north. Without that, a flight over
+the Arctic spins the view as north swings round underneath it: 8.7° in a single frame on the
+Americas route. With it, and an establishing move that takes its time, the fastest the view
+turns anywhere on that flight is 1.4° a frame.
+
+Press play with a lineage selected and the camera follows the growing tip and leans into the
+chase the same way. It eases its speed under an acceleration cap, so a chase that starts far from the
+tip still starts from rest. Any drag, wheel or pinch hands the camera back at once, and so do
+`Esc`, the caption's stop button, and taking the clock yourself with space, the scrubber or the
+arrow keys. A held globe does not turn by itself, and the ground goes
+where the pointer goes even while the heading is still unwinding. On release the view rights
+itself, north up and looking straight down: about four seconds from a quarter turn. With reduced
+motion set, flights become cuts, each stop held long enough to read its note, and the rig never
+leaves rest.
 
 Left alone for six seconds and seen from far enough out, the globe leans onto its 23.4° axis and
 turns about it. Touch it and it rights itself, north up, within about a second.
@@ -163,8 +202,8 @@ structure the sampled record cannot reach. It is labelled as not-observed.
 
 Select a clade and the **route** card lays out its path from the root: numbered waypoints on the
 globe, every hop with position, leg distance, elapsed time, implied pace and member count,
-exportable as CSV. **Fly the route** walks the camera through the waypoints while the clock
-advances with it.
+exportable as CSV. **Fly the route** flies the camera along it, tilted toward the horizon, while
+the clock advances with it (see "The camera").
 
 The card is built to argue with itself:
 
@@ -283,6 +322,17 @@ The ground has gaps of its own:
   an RTX 3080 at 2560 × 1440 with all 262,000 points on, a full-quality frame costs the GPU about
   3.8 ms, against 2.6 ms for the dotted globe it replaces. The frame-time governor is there for
   the hardware that could not be tested.
+
+The camera has gaps too:
+
+- **Journeys fly the reference backbone only.** Its positions are illustrative and entered by
+  hand, so a journey is a picture of the textbook account, not evidence for it. The observed tree
+  flies too, without the narration, and its routes are dated sightings, not itineraries (see
+  "Tracing a lineage").
+- **The rig has no manual control.** Tilt and heading belong to flights, and a drag always brings
+  back the plain north-up camera. A free camera is not built.
+- **A flight is not in the URL.** The link reproduces the tree, the selected clade, the date and
+  the camera, but not the fact that a journey was running.
 
 The honest next step for the science is to replace both position estimators with a Brownian-bridge
 ancestral-state reconstruction. Centroid compresses routes toward zero, oldest-sample is hostage

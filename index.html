@@ -78,6 +78,8 @@
   .chip{border:1px solid var(--line2);background:rgba(13,13,17,.6);border-radius:999px;padding:5px 11px;font-size:12px;
     color:var(--ink2);white-space:nowrap;transition:background .15s,color .15s,border-color .15s;letter-spacing:.01em}
   .chip:hover{background:var(--lift2);color:var(--ink);border-color:rgba(237,233,225,.3)}
+  .chip svg{width:12px;height:12px;vertical-align:-1.5px;margin-right:5px}
+  @media (max-width:1000px){#journeychip{display:none}}
   .search{position:relative;flex:1;max-width:520px;margin:0 auto;min-width:0}
   .search .field{display:flex;align-items:center;gap:9px;height:38px;padding:0 10px 0 12px;border:1px solid var(--line2);
     border-radius:11px;background:rgba(13,13,17,.72);backdrop-filter:blur(12px);cursor:text;
@@ -339,6 +341,25 @@
   .gcols p{font-size:13px;line-height:1.55;color:var(--ink2);margin-bottom:8px}
   .gcols p b{color:var(--ink);font-weight:500}
   .keys{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font-size:13px;color:var(--ink2);align-items:center}
+  /* ---- the caption under a flight ---- */
+  .cine{position:fixed;left:22px;bottom:calc(var(--tl) + 18px);z-index:22;width:min(440px,calc(100vw - 44px));
+    padding:14px 16px 15px;overflow:hidden;
+    border:1px solid var(--line2);border-radius:14px;background:var(--glass);backdrop-filter:blur(14px);box-shadow:0 18px 50px rgba(0,0,0,.45);
+    pointer-events:none;opacity:0;transform:translateY(10px);visibility:hidden;
+    transition:opacity .22s ease-in,transform .22s ease-in,visibility 0s linear .22s}
+  .cine.on{opacity:1;transform:none;visibility:visible;transition:opacity .45s var(--ease),transform .45s var(--ease)}
+  .cine .ctext{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .cine .ck{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);min-height:32px;
+    display:flex;align-items:center;padding-right:112px}
+  .cine .ct{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.08;letter-spacing:.005em;text-wrap:balance;overflow-wrap:anywhere}
+  .cine .cb{display:flex;flex-direction:column;gap:5px;margin-top:3px}
+  .cine .cw{font-family:var(--mono);font-size:11px;color:var(--ink2);font-variant-numeric:tabular-nums;animation:cinein .5s var(--ease) both}
+  .cine .cn{font-size:13px;line-height:1.5;color:var(--ink2);text-wrap:pretty;animation:cinein .6s .08s var(--ease) both}
+  @keyframes cinein{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+  .cine .cctl{position:absolute;top:10px;right:10px;display:flex;gap:4px;pointer-events:auto}
+  .cine .cbar{position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--line)}
+  .cine .cbar i{display:block;height:100%;background:var(--ink2);transform-origin:0 50%;transform:scaleX(0)}
+  .row.jr.on{background:var(--lift2)} .row.jr.on .nm{font-weight:600}
   .toast{position:fixed;left:50%;bottom:calc(var(--tl) + 16px);transform:translate(-50%,8px);z-index:60;background:var(--ink);color:#0e0e12;
     font-size:13px;font-weight:500;padding:8px 14px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;
     transition:opacity .2s,transform .25s var(--ease);pointer-events:none}
@@ -388,10 +409,14 @@
     .welcome h1{font-size:30px}
     .gcols{grid-template-columns:1fr}
     .toast{bottom:calc(var(--tl) + 12px)}
+    .cine{left:calc(10px + env(safe-area-inset-left,0px));right:calc(10px + env(safe-area-inset-right,0px));width:auto;bottom:calc(var(--tl) + 10px);padding:9px 13px 13px}
+    .cine .ck{min-height:44px;padding-right:148px} .cine .cctl{top:8px;right:8px}
+    .cine .ct{font-size:21px}
   }
   @media (max-width:430px){
     .wordmark{font-size:17px} .search .field{padding:0 8px 0 10px;gap:6px}
     .seachip svg{display:none} .seachip{padding:3px 7px}
+    #cineprev{display:none} .cine .ck{padding-right:100px}
   }
   @media (max-width:360px){
     .epoch{display:none} .bigyear{font-size:22px}
@@ -401,6 +426,7 @@
     .timeline{padding-top:6px} .transport{height:38px} .bigyear{font-size:24px} .ycap{display:none}
     .strata{height:30px;margin-top:4px} .ticks{display:none}
     .rail{height:min(80dvh,400px)}
+    .cine{right:auto;width:min(360px,50vw)} .cine .ct{font-size:18px} .cine .cn{display:none}
   }
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{transition:none!important;animation:none!important}
@@ -413,11 +439,21 @@
 <div id="labels" aria-hidden="true"></div>
 <div id="waypoints" aria-hidden="true"></div>
 <div class="tip" id="tip" hidden aria-hidden="true"></div>
+<div class="cine" id="cine">
+  <div class="ctext" role="status" aria-live="polite" aria-atomic="false"><span class="ck" id="cinek"></span><b class="ct" id="cinet"></b><span class="cb" id="cineb"></span></div>
+  <div class="cctl">
+    <button class="ibtn sm" id="cineprev" title="Previous journey" aria-label="Previous journey"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5v14"/><path d="M19 5 9 12l10 7V5Z" fill="currentColor" stroke="none"/></svg></button>
+    <button class="ibtn sm" id="cinestop" title="Stop (esc)" aria-label="Stop the flight"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+    <button class="ibtn sm" id="cinenext" title="Next journey" aria-label="Next journey"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 5v14"/><path d="M5 5l10 7-10 7V5Z" fill="currentColor" stroke="none"/></svg></button>
+  </div>
+  <div class="cbar" aria-hidden="true"><i id="cinebar"></i></div>
+</div>
 
 <header class="topbar" id="topbar">
   <div class="brand">
     <h1 class="h1"><button class="wordmark" id="home" title="Reset the view" aria-label="Deep Ancestry Atlas — reset the view">Deep Ancestry Atlas</button></h1>
     <button class="chip" id="modechip" title="Lineage tree settings">Y-DNA · observed · centroid</button>
+    <button class="chip" id="journeychip" title="Eight migrations the camera flies by itself"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="5.5" r="2"/><path d="M7.5 18.5H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7.5"/></svg>Journeys</button>
   </div>
   <div class="search" id="search">
     <label class="field" for="q">
@@ -458,6 +494,13 @@
         <p class="note">Records outside the range are removed from every layer; the timeline then plays inside it.</p></div>
     </div>
     <div class="pane" id="pane-lineage" role="tabpanel" aria-labelledby="tab-lineage" tabindex="0" hidden>
+      <div class="sect"><h2>Journeys <span class="cnt">camera flights</span></h2>
+        <p class="lead">Routes from the textbook tree. Pick one and the camera flies it while the clock runs, stopping at each
+          waypoint for the note on it. Drag or scroll at any point to take the camera back.</p>
+        <div id="journeys"></div>
+        <div class="actions"><button class="btn" id="tourbtn" aria-pressed="false">Play all</button></div>
+        <p class="note">A journey switches the tree to the <b>reference backbone</b>: published ages and hand-placed positions,
+          not sampled genomes. Any clade you select, in either tree, flies the same way from <b>Fly the route</b> on its card.</p></div>
       <div class="sect"><h2>Lineage tree</h2>
         <div class="ctl"><label>Marker <small>which parent line the tree follows</small></label>
           <div class="seg" role="group"><button id="mY" aria-pressed="true">Y-DNA · paternal</button><button id="mM" aria-pressed="false">mtDNA · maternal</button></div></div>
@@ -536,6 +579,7 @@
       <div class="starts">
         <button class="start" id="qsPlay" disabled><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12-7.5L7 4.5Z"/></svg><span><b>Play 300,000 years</b><span>Watch the record fill in, from Denisova Cave to the present.</span></span></button>
         <button class="start" id="qsTrace" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 21 4l-6 17-3-7-9-2Z"/></svg><span><b>Trace one lineage from its root</b><span>Follow R1b, the commonest paternal line in Europe, waypoint by waypoint.</span></span></button>
+        <button class="start" id="qsTour" disabled><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="5.5" r="2"/><path d="M7.5 18.5H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h7.5"/></svg><span><b>Watch the journeys</b><span>The camera flies 8 textbook migrations, one after another, as the clock runs.</span></span></button>
         <button class="start" id="qsExplore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg><span><b>Explore on my own</b><span>Drag to orbit, scroll to zoom, click anything to inspect it.</span></span></button>
       </div>
       <div class="foot"><span id="wstat">Loading the lineage tree…</span><span>Press <kbd>?</kbd> any time for the guide</span></div>
@@ -552,6 +596,8 @@
             them is how much the route depends on the statistic rather than the data.</p>
           <p><b>Empty is not absent.</b> Where the timeline's sediment thins out, nobody has dug or sequenced there yet.
             The Sources tab has the full coverage chart.</p>
+          <p><b>Journeys fly themselves.</b> The Lineages tab lists routes from the textbook tree; the camera follows each
+            one through time. Press play with any lineage selected and it follows that one too.</p>
         </div>
         <div>
           <h3>Keyboard</h3>
@@ -560,12 +606,12 @@
             <kbd>← →</kbd><span>Step through time (shift for larger steps)</span>
             <kbd>/</kbd><span>Search</span>
             <kbd>L</kbd><span>Show or hide the panel</span>
-            <kbd>esc</kbd><span>Clear the selection</span>
+            <kbd>esc</kbd><span>Stop a flight, then clear the selection</span>
             <kbd>?</kbd><span>This guide</span>
           </div>
           <h3 style="margin-top:18px">Mouse</h3>
           <div class="keys">
-            <span>drag</span><span>Orbit the globe</span>
+            <span>drag</span><span>Orbit the globe, or take the camera back from a flight</span>
             <span>scroll</span><span>Zoom</span>
             <span>click</span><span>Inspect a lineage, place or sample</span>
           </div>
@@ -879,17 +925,57 @@ async function loadEarth(){
 let camLat=26,camLon=24,camDist=3.05,idle=0,drag=false,lx=0,ly=0,tpd=0;
 let lastMVP=null,lastCam=V(0,0,3),DPR=1;
 const RM=matchMedia("(prefers-reduced-motion: reduce)");
-const camPos=()=>{const v=ll2v(camLat,camLon);return V(v.x*camDist,v.y*camDist,v.z*camDist);};
+// The plain camera looks straight down at (camLat, camLon) from camDist, north up. The rig adds what
+// a flight needs: a tilt toward the horizon, a heading (which way along the ground is up the screen)
+// and a bank into turns. Flights only ever set targets; damped springs do the moving, so a change of
+// mind bends the motion and never breaks it. At rest the rig is (0, 0, 0): the plain camera exactly.
+let camTilt=0,camHead=0,camBank=0;
+const RIG={tilt:0,head:0,ts:0,hs:0,vt:0,vh:0};      // targets, the same targets eased, and the two speeds
+const wrapPi=a=>a-2*Math.PI*Math.round(a/(2*Math.PI));
+const tangentAt=(p,d)=>{const k=dot3(p,d),t=V(d.x-p.x*k,d.y-p.y*k,d.z-p.z*k),l=Math.hypot(t.x,t.y,t.z);
+  return l>1e-6?V(t.x/l,t.y/l,t.z/l):null;};               // d flattened into the tangent plane at p
+function frameAt(p){const l=Math.hypot(p.z,p.x),e=l>1e-6?V(p.z/l,0,-p.x/l):V(1,0,0);return {e,n:cross(p,e)};}   // east and north at p
+function bearing(p,q){const t=tangentAt(p,q);if(!t)return null;const F=frameAt(p);return Math.atan2(dot3(t,F.e),dot3(t,F.n));}
+function stepRig(dt){
+  if(RM.matches){camTilt=camHead=camBank=0;RIG.vt=RIG.vh=RIG.ts=RIG.hs=0;return;}
+  if(drag&&dragFar>=3){                                       // a held globe does not turn by itself: coast to a stop, right it on release
+    const k=Math.exp(-dt/0.08);RIG.vt*=k;RIG.vh*=k;camTilt+=RIG.vt*dt;camHead=wrapPi(camHead+RIG.vh*dt);camBank*=Math.exp(-dt/0.3);
+    RIG.ts=camTilt;RIG.hs=camHead;return;}                    // and the release starts from here, gently
+  // The springs chase the targets through a short lag, so a target that jumps (a flight ends, the
+  // route turns a corner) ramps the turn in. A bare spring starts at full acceleration: a kick.
+  const q=1-Math.exp(-dt/0.25);RIG.ts+=(RIG.tilt-RIG.ts)*q;RIG.hs=wrapPi(RIG.hs+wrapPi(RIG.head-RIG.hs)*q);
+  const free=!PATHFLY&&!FOLLOW,kt=7,kh=free?10:4.5,cap=free?1.8:0.8;   // critically damped: no overshoot. Handed back, north comes up promptly
+  RIG.vt+=(kt*(RIG.ts-camTilt)-2*Math.sqrt(kt)*RIG.vt)*dt;camTilt+=RIG.vt*dt;
+  RIG.vh+=(kh*wrapPi(RIG.hs-camHead)-2*Math.sqrt(kh)*RIG.vh)*dt;
+  RIG.vh=Math.max(-cap,Math.min(cap,RIG.vh));camHead=wrapPi(camHead+RIG.vh*dt);
+  const lean=Math.max(-0.10,Math.min(0.10,RIG.vh*0.2))*Math.min(1,camTilt/0.4);      // right turn, right wing down
+  camBank+=(lean-camBank)*(1-Math.exp(-dt/0.45));
+  if(RIG.tilt===0&&Math.abs(camTilt)<1e-3&&Math.abs(RIG.vt)<1e-3&&Math.abs(RIG.ts)<1e-3){camTilt=0;RIG.vt=0;RIG.ts=0;}      // a twentieth of a degree: nobody sees it land
+  if(RIG.head===0&&Math.abs(camHead)<1e-3&&Math.abs(RIG.vh)<1e-3&&Math.abs(RIG.hs)<1e-3){camHead=0;RIG.vh=0;RIG.hs=0;}
+  if(lean===0&&Math.abs(camBank)<1e-3)camBank=0;
+}
+// eye, look-at point and up vector. The eye keeps its distance from the focus as it tilts, so
+// what is under the camera stays the same size while the horizon comes into frame.
+function rigView(roll){
+  const f=ll2v(camLat,camLon),F=frameAt(f),ch=Math.cos(camHead),sh=Math.sin(camHead);
+  const h=V(F.n.x*ch+F.e.x*sh,F.n.y*ch+F.e.y*sh,F.n.z*ch+F.e.z*sh);
+  const r=camDist-1,ct=Math.cos(camTilt),st=Math.sin(camTilt),a=1+r*ct,b=r*st;
+  const eye=V(f.x*a-h.x*b,f.y*a-h.y*b,f.z*a-h.z*b);
+  const u0=V(h.x*ct+f.x*st,h.y*ct+f.y*st,h.z*ct+f.z*st),d=norm(sub(f,eye)),s=cross(d,u0);
+  const rho=camBank-roll,cr=Math.cos(rho),sr=Math.sin(rho);
+  return {eye,at:f,up:V(u0.x*cr+s.x*sr,u0.y*cr+s.y*sr,u0.z*cr+s.z*sr)};
+}
 let FLY=null,FOLLOW=false,dragFar=0;      // a timed camera move; whether playback follows the selected route
 // Any real drag, wheel or pinch ends whatever is moving the camera and hands it back. A press that
 // never travels is a click, and picking owns those, so the hand-back waits for 3 px of movement.
-function handBack(){FLY=null;FOLLOW=false;FOLV=0;if(PATHFLY){PATHFLY=null;paintFlyBtn();}}
+function handBack(){FLY=null;FOLLOW=false;FOLV=0;if(PATHFLY||TOUR){PATHFLY=null;TOUR=null;paintFlyBtn();paintCine();}}
 cv.addEventListener("pointerdown",e=>{drag=true;dragFar=0;lx=e.clientX;ly=e.clientY;idle=0;
  cv.classList.add("drag");cv.setPointerCapture(e.pointerId);hideHint();});
 cv.addEventListener("pointermove",e=>{if(!drag)return;
  const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;idle=0;
  if(dragFar<3){dragFar+=Math.abs(dx)+Math.abs(dy);if(dragFar<3)return;handBack();}
- camLon-=dx*0.26;camLat=Math.max(-84,Math.min(84,camLat+dy*0.26));});
+ const c=Math.cos(camHead),s=Math.sin(camHead);      // while a heading unwinds, the ground still goes where the pointer goes
+ camLon+=(dy*s-dx*c)*0.26;camLat=Math.max(-84,Math.min(84,camLat+(dx*s+dy*c)*0.26));});
 const endDrag=()=>{drag=false;cv.classList.remove("drag");};
 cv.addEventListener("pointerup",endDrag);cv.addEventListener("pointercancel",endDrag);
 cv.addEventListener("wheel",e=>{e.preventDefault();handBack();
@@ -901,15 +987,24 @@ cv.addEventListener("touchmove",e=>{if(e.touches.length===2&&tpd){
  handBack();camDist=Math.max(1.12,Math.min(7.5,camDist*tpd/d));tpd=d;idle=0;}},{passive:true});
 const angle=(a,b)=>Math.acos(Math.max(-1,Math.min(1,dot3(a,b))));
 const ease5=u=>u*u*u*(u*(u*6-15)+10);      // quintic: rest to rest, peaking at 1.9x the mean speed
-function setCam(v,d){const u=norm(v);camLat=Math.max(-84,Math.min(84,Math.asin(Math.max(-1,Math.min(1,u.y)))*180/Math.PI));
- camLon=Math.atan2(u.x,u.z)*180/Math.PI;if(d)camDist=d;}
+// Every flight moves the camera through here. "Up the screen" is carried along the move (parallel
+// transport) and the heading is re-expressed against the new local north, so crossing high latitudes,
+// where north swings round within a few degrees of travel, does not spin the view. The heading
+// spring then turns it back toward its target at its own pace.
+function setCam(v,d,cut){const u=norm(v),f1=ll2v(camLat,camLon),F1=frameAt(f1);
+ camLat=Math.max(-84,Math.min(84,Math.asin(Math.max(-1,Math.min(1,u.y)))*180/Math.PI));
+ camLon=Math.atan2(u.x,u.z)*180/Math.PI;if(d)camDist=d;
+ const f2=ll2v(camLat,camLon),t1=tangentAt(f1,f2),t2=tangentAt(f2,f1);if(cut||RM.matches||!t1||!t2||dot3(f1,f2)<-0.999)return;       // a cut keeps its heading
+ const a=norm(cross(f1,f2)),ch=Math.cos(camHead),sh=Math.sin(camHead),h=V(F1.n.x*ch+F1.e.x*sh,F1.n.y*ch+F1.e.y*sh,F1.n.z*ch+F1.e.z*sh);
+ const p=dot3(h,t1),q=dot3(h,a),h2=V(a.x*q-t2.x*p,a.y*q-t2.y*p,a.z*q-t2.z*p),F2=frameAt(f2);      // t2 points back toward f1
+ const nh=Math.atan2(dot3(h2,F2.e),dot3(h2,F2.n));RIG.hs=wrapPi(RIG.hs+wrapPi(nh-camHead));camHead=nh;}
 // A flight along the great circle, rising on long hops so the journey is seen from above and
 // settling onto the target. Reduced motion gets the same destination as a cut.
 function flyTo(n,d){
  const to=ll2v(n.lat,n.lon),d1=d||Math.min(camDist,2.2);idle=0;
- if(RM.matches){FLY=null;setCam(to,d1);URLSTATE.dirty();return;}
+ if(RM.matches){FLY=null;setCam(to,d1,true);URLSTATE.dirty();return;}
  const from=ll2v(camLat,camLon),ang=angle(from,to);
- if(ang>3.0){FLY=null;setCam(to,d1);return;}           // antipodal: no single great circle to follow
+ if(ang>3.0){FLY=null;setCam(to,d1,true);return;}           // antipodal: no single great circle to follow
  FLY={a:from,b:to,d0:camDist,d1,t:0,dur:1.0+2.8*Math.pow(ang/Math.PI,0.75),hump:Math.max(0,ang-0.35)*0.75};}
 function stepFly(dt){
  FLY.t=Math.min(1,FLY.t+dt/FLY.dur);const e=ease5(FLY.t);
@@ -1216,6 +1311,7 @@ let QOFF=new Set();             // AADR assessment levels switched off
 let HAP={y:null,mt:null};       // genome index -> deepest clade index in the FULL tree
 let PATHFLY=null;               // declared here, not in the last script block: frame() reads it
                                 // and the first rAF can fire before that block has executed
+let TOUR=null;                  // the journey being flown: {i, all}; all = carry on to the next one
 const TREES={};
 async function getTree(mark,src){
   const key=(src==="obs"?"tree_":"tree_ref_")+mark;
@@ -1444,6 +1540,7 @@ function setRail(open){
 }
 $("railtoggle").onclick=()=>setRail(!railOpen());
 $("modechip").onclick=()=>reveal("lineage");
+$("journeychip").onclick=()=>reveal("lineage");        // the journeys list leads that pane
 function reveal(t){showTab(t);if(!railOpen())setRail(true);const p=$("pane-"+t);if(p)p.scrollTop=0;}
 // bottom sheet on phones: a swipe down on the handle or tab strip closes it
 (function(){let y0=null;
@@ -1492,16 +1589,16 @@ function paintSea(){
     (EARTH.meta.ice&&NOW>EARTH.meta.ice.ages[EARTH.meta.ice.ages.length-1]?" Ice before 80,000 BP is an analogue chosen by sea level, not a reconstruction.":"");
   return said;
 }
-scrub.addEventListener("input",()=>{playing=false;FOLLOW=false;paintPlay();setTime(+scrub.value/1000,true);});
+scrub.addEventListener("input",()=>{if(PATHFLY||TOUR)handBack();playing=false;FOLLOW=false;paintPlay();setTime(+scrub.value/1000,true);});   // taking the clock ends a flight, as taking the camera does
 (function(){const marks=[300000,100000,50000,20000,10000,5000,2000,1000,0];
  $("ticks").innerHTML=marks.map(m=>{const pc=(age2p(m)*100).toFixed(2);
   const l=m===0?"now":(m/1000)+"k";return `<i style="left:${pc}%" data-m="${m}">${l}</i>`;}).join("");})();
 function paintPlay(){const b=$("play");b.setAttribute("aria-pressed",String(playing));
   b.innerHTML=playing?ICO.pause:ICO.play;b.title=playing?"Pause (space)":"Play (space)";b.setAttribute("aria-label",playing?"Pause":"Play");}
 function togglePlay(){if(!playing&&PT>=0.999)setTime(0);playing=!playing;paintPlay();
-  if(playing){if(PATHFLY){PATHFLY=null;paintFlyBtn();}FOLLOW=!!SELN;}}   // playing a selected lineage: the camera keeps its growing tip in view
+  if(playing){if(PATHFLY||TOUR)handBack();FOLLOW=!!SELN;}}   // playing a selected lineage: the camera keeps its growing tip in view
 $("play").onclick=togglePlay;
-$("rewind").onclick=()=>{setTime(0);playing=false;paintPlay();};
+$("rewind").onclick=()=>{if(PATHFLY||TOUR)handBack();setTime(0);playing=false;paintPlay();};
 $("speed").onchange=e=>{speed=+e.target.value;};
 function setTMode(m){TMODE=m?1:0;$("tmodeA").setAttribute("aria-pressed",String(!TMODE));
   $("tmodeW").setAttribute("aria-pressed",String(!!TMODE));$("tmodeM").setAttribute("aria-pressed",String(!!TMODE));
@@ -1589,13 +1686,13 @@ async function reTree(){
   if($("q").value.trim())runSearch($("q").value);
   URLSTATE.dirty();
 }
-$("mY").onclick=()=>{MARK="y";reTree();};
-$("mM").onclick=()=>{MARK="mt";reTree();};
-$("srcObs").onclick=()=>{SRC="obs";reTree();};
-$("srcRef").onclick=()=>{SRC="ref";reTree();};
-$("posC").onclick=()=>{POSMODE="c";reTree();};
-$("posO").onclick=()=>{POSMODE="o";reTree();};
-[0,1,2].forEach(i=>$("dt"+i).onclick=()=>{DLEV=i;reTree();});
+$("mY").onclick=()=>{handBack();MARK="y";reTree();};
+$("mM").onclick=()=>{handBack();MARK="mt";reTree();};
+$("srcObs").onclick=()=>{handBack();SRC="obs";reTree();};
+$("srcRef").onclick=()=>{handBack();SRC="ref";reTree();};
+$("posC").onclick=()=>{handBack();POSMODE="c";reTree();};
+$("posO").onclick=()=>{handBack();POSMODE="o";reTree();};
+[0,1,2].forEach(i=>$("dt"+i).onclick=()=>{handBack();DLEV=i;reTree();});
 function paintTreeNote(){
   const roots=NODES.filter(n=>!n.parent).length,all=(TREES["tree_"+MARK]||[]).length;
   $("treenote").innerHTML=SRC==="obs"
@@ -1694,9 +1791,10 @@ function paintSelection(){
   $("tab-selection").classList.toggle("has",has);
   if(!has){$("selempty").innerHTML=`<div class="card"><div class="db empty">${ICO.target}
       <p><b>Nothing selected yet.</b> Click a lineage arc, a place or a sample on the globe, or search for one.</p>
-      <div class="actions"><button class="btn" id="selsearch">${ICO.search} Search the atlas</button></div>
+      <div class="actions"><button class="btn" id="selsearch">${ICO.search} Search the atlas</button>
+        <button class="btn" id="seljourneys">${ICO.fly} Watch a journey</button></div>
       <dl class="kv"><dt>Clades drawn</dt><dd>${fmtN(NODES.length)}</dd><dt>Branches</dt><dd>${fmtN(EDGES.length)}</dd></dl></div></div>`;
-    $("selsearch").onclick=()=>$("q").focus();}
+    $("selsearch").onclick=()=>$("q").focus();$("seljourneys").onclick=()=>reveal("lineage");}
   if(SELREC)paintRec();
   if(SELN){paintDossier();paintPath();}
   paintQuery();
@@ -1713,15 +1811,16 @@ function pathFocus(hops,n){
   const l=Math.hypot(x,y,z)||1;
   return {lat:Math.asin(y/l)*180/Math.PI,lon:Math.atan2(x/l,z/l)*180/Math.PI};
 }
-function selectNode(n){
-  SELN=n;SELREC=null;PATHFLY=null;FOLLOW=!!n&&playing;refreshDyn();
+function selectNode(n,quiet){               // quiet: a journey is selecting it, and brings its own camera and its own panel
+  SELN=n;SELREC=null;PATHFLY=null;if(!quiet&&TOUR){TOUR=null;paintCine();}
+  FOLLOW=!!n&&playing;refreshDyn();
   if(LINFILTER){refreshAllLayers();buildStrata();}
   paintSelection();paintLayers();
-  if(n){const hops=pathHops();flyTo(pathFocus(hops,n),pathDist(hops));reveal("selection");}
+  if(n&&!quiet){const hops=pathHops();flyTo(pathFocus(hops,n),pathDist(hops));reveal("selection");}
   URLSTATE.dirty();
 }
 function selectRec(hit){
-  SELREC=hit;PATHFLY=null;paintSelection();
+  SELREC=hit;PATHFLY=null;if(TOUR){TOUR=null;paintCine();}paintSelection();
   if(hit){flyTo({lat:hit.L.lat[hit.i],lon:hit.L.lon[hit.i]});reveal("selection");
     loadText(hit.L).then(()=>{if(SELREC===hit){paintRec();paintQuery();}});}
 }
@@ -1743,7 +1842,7 @@ function paintDossier(){
        <button class="btn" id="carriers" aria-pressed="${LINFILTER}" title="Show only genomes that carry this clade or one of its subclades">${ICO.filter} Only carriers</button>
        <button class="btn" id="sellink">${ICO.link} Copy link</button></div></div>`;
   d.querySelectorAll(".chain button").forEach(s=>s.onclick=()=>selectNode(NODES[+s.dataset.n]));
-  $("flypath").onclick=()=>{if(PATHFLY)PATHFLY=null;else startPathFly();paintFlyBtn();};
+  $("flypath").onclick=()=>{if(PATHFLY)handBack();else startPathFly();paintFlyBtn();};
   paintFlyBtn();
   $("carriers").onclick=()=>setCarriers(!LINFILTER);
   $("sellink").onclick=e=>{URLSTATE.write();copyText(location.href,e.currentTarget,"Link copied");};
@@ -1844,7 +1943,7 @@ function paintWaypoints(mvp,w,h,camv){
     const n=hops[i].n;
     if(n.bp<NOW||dot3(norm(n.v),norm(sub(camv,n.v)))<0.05){d.style.display="none";return;}
     const s=project(n.v,mvp,w,h);
-    if(!s||s.x<-40||s.y<-40||s.x>w+40||s.y>h+40){d.style.display="none";return;}
+    if(!s||s.x<-40||s.x>w+40||s.y<TOPH+4||s.y>h-TLH-4){d.style.display="none";return;}     // not under the top bar or the timeline
     const ends=(i===0||i===hops.length-1);
     if(!ends&&placed.some(q=>Math.abs(q.y-s.y)<20&&s.x>q.x-26&&s.x<q.x+140)){d.style.display="none";return;}
     placed.push(s);
@@ -2220,79 +2319,128 @@ function postDraw(w,h,ctr,spot){
   gl.enable(gl.BLEND);
 }
 
-/* ===================== camera moves: route flight, follow, idle tilt ===================== */
-// "Fly the route". The camera runs a smooth spline through the waypoints, on the sphere: each leg
-// is a cubic Bezier evaluated with nested slerps, its control points a third of the way along the
-// Catmull-Rom tangent at either end. Where a tangent lines up with the great circle the leg is
-// exactly a uniform slerp, which is what the arc itself is, so the growing tip stays under the
-// camera; where the route turns, the corner is rounded. It climbs on long legs, settles over each
-// arrival, slows through the waypoints without stopping, and the clock runs in step. Reduced
-// motion gets the same stops as cuts, the clock jumping with them.
+/* ===================== camera moves: route flight, journeys, follow, idle tilt ===================== */
+// "Fly the route" is shot like a short film. An establishing shot frames the whole route, drawn in
+// full. The camera then dives to where the route begins while the clock runs back to that date,
+// tilts toward the horizon, and chases the growing arc leg by leg with the clock in step, climbing
+// on long legs and turning with the route. It circles the last waypoint, then pulls back out.
+// The focus runs a smooth spline through the waypoints, on the sphere: each leg is a cubic Bezier
+// evaluated with nested slerps, its control points a third of the way along the tangent at either
+// end. Where a tangent lines up with the great circle the leg is exactly a uniform slerp, which is
+// what the arc itself is, so the growing tip stays under the camera. A route whose waypoints carry
+// notes (the reference backbone) stops at each one for as long as its note takes to read, turning
+// slowly about it; a route without them flows through and rounds its corners. Reduced motion gets
+// the same stops as cuts, the clock jumping with them.
 const chord=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
-const tangentAt=(p,d)=>{const k=dot3(p,d),t=V(d.x-p.x*k,d.y-p.y*k,d.z-p.z*k),l=Math.hypot(t.x,t.y,t.z);
-  return l>1e-6?V(t.x/l,t.y/l,t.z/l):null;};               // d flattened into the tangent plane at p
 const along=(p,t,a)=>V(p.x*Math.cos(a)+t.x*Math.sin(a),p.y*Math.cos(a)+t.y*Math.sin(a),p.z*Math.cos(a)+t.z*Math.sin(a));
-function startPathFly(){
-  const hops=pathHops();if(hops.length<2)return;
+const smooth01=u=>{u=Math.max(0,Math.min(1,u));return u*u*(3-2*u);};
+const tiltFor=d=>0.90-0.50*smooth01((d-1.5)/1.2);           // steep when low, shallower from high up, so the globe keeps the frame
+const sideOf=u=>0.30+0.12*Math.cos(Math.PI*u);               // seen from behind and to one side, so the trail runs down a diagonal; squarer on by the end
+const readTime=n=>n.blurb?Math.max(2.6,Math.min(7.5,1.2+n.blurb.split(/\s+/).length*0.27)):0;
+function startPathFly(o){
+  const all=pathHops(),k0=o&&o.from?Math.max(0,all.findIndex(h=>h.n.id===o.from)):0,hops=all.slice(k0);
+  if(hops.length<2)return false;
   playing=false;paintPlay();FLY=null;FOLLOW=false;idle=0;
   const P=hops.map(h=>h.n.v),n=P.length,mob=isMobile()?1.3:1,legs=[];
+  const stops=hops.some(h=>h.n.blurb),dwell=hops.map((h,i)=>stops?Math.max(i===n-1?4.4:1.3,readTime(h.n)):(i===0?0.55:i===n-1?3.4:0));
   for(let i=1;i<n;i++){const ang=angle(P[i-1],P[i]);
     // long legs take longer but never drag; a leg that covers no ground and no years is only a beat
-    legs.push({ang,dur:Math.max(hops[i].yrs>0?1.1:0.5,Math.min(5.0,0.6+3.6*ang)),
-      cruise:Math.max(1.5,Math.min(3.1,1.42+1.9*ang))*mob,a0:i===1?1:0.7,a1:i===n-1?1:0.7});}
+    legs.push({ang,dur:Math.max(hops[i].yrs>0?1.1:0.5,Math.min(5.6,0.7+3.9*ang)),
+      cruise:Math.max(1.5,Math.min(3.1,1.42+1.9*ang))*mob,a0:(stops||i===1)?1:0.7,a1:(stops||i===n-1)?1:0.7});}
   // resting height over each waypoint: low enough to read its label, high enough to see the next leg leave
   const rest=P.map((_,i)=>{const a=legs[Math.max(0,i-1)].ang,b=legs[Math.min(legs.length-1,i)].ang;
     return Math.max(1.42,Math.min(2.3,1.36+1.1*Math.min(a,b)+0.35*Math.max(a,b)))*mob;});
   // direction of travel through each waypoint: toward the next from the one before, or along the
   // only leg there is at either end. Each leg then scales it by its own length, so a short leg
-  // beside a long one cannot overshoot and loop.
-  const T=P.map((p,i)=>tangentAt(p,sub(P[Math.min(n-1,i+1)],P[Math.max(0,i-1)])));
+  // beside a long one cannot overshoot and loop. A route that stops at its waypoints has no corner
+  // to round, so its legs keep to the great circle and the tip stays exactly under the camera.
+  const T=P.map((p,i)=>stops?null:tangentAt(p,sub(P[Math.min(n-1,i+1)],P[Math.max(0,i-1)])));
   legs.forEach((L,k)=>{const P0=P[k],P1=P[k+1],g0=tangentAt(P0,P1),g1=tangentAt(P1,P0);
     const t0=T[k]||g0,t1=T[k+1]||(g1&&V(-g1.x,-g1.y,-g1.z));
-    L.c0=t0?along(P0,t0,L.ang/3):P0;L.c1=t1?along(P1,t1,-L.ang/3):P1;});
-  const a=ll2v(camLat,camLon),ang0=angle(a,P[0]);
-  PATHFLY={hops,P,legs,rest,i:0,t:0,phase:"in",a,d0:camDist,dur:1.0+2.8*Math.pow(ang0/Math.PI,0.75),
-    hump:Math.max(0,ang0-0.35)*0.75,far:ang0>3.0};
-  setTime(age2p(hops[0].n.bp));paintFlyBtn();
+    L.c0=t0?along(P0,t0,L.ang/3):P0;L.c1=t1?along(P1,t1,-L.ang/3):P1;L.b0=L.ang>1e-5?bearing(P0,L.c0):null;});
+  const f=pathFocus(hops,SELN),b=ll2v(f.lat,f.lon),a=ll2v(camLat,camLon),ang0=angle(a,b),ang1=angle(b,P[0]);
+  const F=PATHFLY={hops,P,legs,rest,dwell,stops,k:0,at:-1,t:0,el:0,phase:"est",a,b,d0:camDist,d1:pathDist(hops),
+    dur:Math.max(1.6,1.4+3.6*Math.pow(ang0/Math.PI,0.75)),hump:Math.max(0,ang0-0.35)*0.75,far:ang0>3.0,   // an establishing move takes its time
+    p0:PT,p1:Math.max(PT,age2p(hops[n-1].n.teff)),hold:o&&o.title?2.4:0.9,inDur:1.7+2.6*Math.pow(ang1/Math.PI,0.75),
+    km:hops[n-1].cum-hops[0].cum,hTrav:0,hArr:0,drift:0,dFrom:0,out:!(o&&o.more)};
+  F.total=F.dur+F.hold+F.inDur+dwell.reduce((s,d)=>s+d,0)+legs.reduce((s,L)=>s+L.dur,0)+(F.out?2.8:0);
+  paintFlyBtn();paintCine();return true;
 }
-function endPathFly(){PATHFLY=null;paintFlyBtn();URLSTATE.dirty();}
+function endPathFly(){
+  PATHFLY=null;paintFlyBtn();URLSTATE.dirty();
+  if(TOUR){const nx=TOUR.i+1;
+    if(TOUR.all&&nx<JOURNEYS.length){playJourney(nx,true);return;}
+    TOUR=null;}
+  paintCine();
+}
+function legPos(F,k,s){const L=F.legs[k],P0=F.P[k],P1=F.P[k+1];if(L.ang<1e-5)return P0;
+  const q0=slerp(P0,L.c0,s),q1=slerp(L.c0,L.c1,s),q2=slerp(L.c1,P1,s);
+  return slerp(slerp(q0,q1,s),slerp(q1,q2,s),s);}                       // de Casteljau, on the sphere
 function stepPathFly(dt){
-  const F=PATHFLY,n=F.P.length;idle=0;
+  const F=PATHFLY,n=F.P.length;idle=0;F.el+=dt;
   if(RM.matches){
-    F.t+=dt;if(F.phase!=="in"&&F.t<1.7)return;
-    if(F.phase==="in")F.phase="cut";else F.i++;
-    F.t=0;if(F.i>=n){endPathFly();return;}
-    setCam(F.P[F.i],F.rest[F.i]);setTime(age2p(F.hops[F.i].n.teff));return;}
-  if(F.phase==="in"){
+    F.t+=dt;
+    if(F.phase!=="cut"){F.phase="cut";F.at=0;F.t=0;}
+    else{if(F.t<Math.max(1.7,F.stops?F.dwell[F.at]:0))return;F.at++;F.t=0;if(F.at>=n){endPathFly();return;}}
+    setCam(F.P[F.at],F.rest[F.at]);setTime(age2p(F.hops[F.at].n.teff-0.5));paintCine();return;}
+  if(F.phase==="est"){                                   // the whole route from above, every leg of it drawn
     F.t=F.far?1:Math.min(1,F.t+dt/F.dur);const e=ease5(F.t);
-    setCam(F.far?F.P[0]:slerp(F.a,F.P[0],e),F.d0+(F.rest[0]-F.d0)*e+F.hump*Math.sin(Math.PI*e));
-    if(F.t>=1){F.phase="hold";F.t=0;F.i=1;}return;}
-  if(F.phase==="hold"){F.t+=dt;if(F.t>=0.55){F.phase="leg";F.t=0;}return;}
+    setCam(F.far?F.b:slerp(F.a,F.b,e),F.d0+(F.d1-F.d0)*e+F.hump*Math.sin(Math.PI*e),F.far);
+    if(F.p1>F.p0)setTime(F.p0+(F.p1-F.p0)*e);
+    RIG.tilt=0.30;RIG.head=0;
+    if(F.t>=1){F.phase="title";F.t=0;}return;}
+  if(F.phase==="title"){
+    F.t+=dt;RIG.tilt=0.30;RIG.head=0;
+    if(F.t>=F.hold){F.phase="in";F.t=0;F.a=ll2v(camLat,camLon);F.d0=camDist;F.p0=PT;F.p1=age2p(F.hops[0].n.teff);
+      F.h0=wrapPi((F.legs[0].b0||0)+sideOf(0));}return;}
+  if(F.phase==="in"){                                    // down to where it starts, the clock running back to then
+    F.t=Math.min(1,F.t+dt/F.inDur);const e=ease5(F.t);
+    setCam(angle(F.a,F.P[0])>3.0?F.P[0]:slerp(F.a,F.P[0],e),F.d0+(F.rest[0]-F.d0)*e);
+    setTime(F.p0+(F.p1-F.p0)*e);
+    RIG.tilt=0.30+(tiltFor(F.rest[0])-0.30)*e;RIG.head=F.h0*e;
+    if(F.t>=1){F.phase="dwell";F.at=0;F.k=0;F.t=0;F.hTrav=F.legs[0].b0||0;setTime(age2p(F.hops[0].n.teff-0.5));paintCine();}return;}
+  if(F.phase==="dwell"){
+    const last=F.at===n-1,dur=F.dwell[F.at];F.t+=dt;
+    // turn slowly about the waypoint while its note is read: before a leg toward the way out,
+    // and at the end of the route most of the way round
+    if(last)RIG.head=wrapPi(F.hArr+0.26*F.t);
+    else{F.drift+=0.07*dt;const b=F.legs[F.at].b0;if(b!=null)F.hTrav=b;RIG.head=wrapPi(F.hTrav+sideOf(F.at/(n-1))+F.drift);}
+    camDist=F.rest[F.at]*(1-0.05*smooth01(F.t/Math.max(dur,0.01))*(last?-1.6:1));
+    RIG.tilt=tiltFor(camDist);
+    if(F.t>=dur){F.t=0;
+      if(!last){F.phase="leg";F.dFrom=camDist;}
+      else if(!F.out){endPathFly();}
+      else{const f=pathFocus(F.hops,SELN);F.phase="out";F.a=ll2v(camLat,camLon);F.b=ll2v(f.lat,f.lon);F.d0=camDist;F.d1=pathDist(F.hops);}}
+    return;}
   if(F.phase==="leg"){
-    const L=F.legs[F.i-1],A=F.hops[F.i-1].n,B=F.hops[F.i].n;
+    const L=F.legs[F.k],A=F.hops[F.k].n,B=F.hops[F.k+1].n;
     F.t=Math.min(1,F.t+dt/L.dur);
-    // slow through the waypoints and quick between them; from rest on the first leg, to rest on the last
+    // from rest to rest where the route stops at its waypoints; else slow through them and quick between
     const s=F.t-(L.a0+(L.a1-L.a0)*F.t)*Math.sin(2*Math.PI*F.t)/(2*Math.PI);
-    const P0=F.P[F.i-1],P1=F.P[F.i],q0=slerp(P0,L.c0,s),q1=slerp(L.c0,L.c1,s),q2=slerp(L.c1,P1,s);
-    const v=L.ang<1e-5?P0:slerp(slerp(q0,q1,s),slerp(q1,q2,s),s);           // de Casteljau, on the sphere
-    const r0=F.rest[F.i-1],r1=F.rest[F.i];
+    const v=legPos(F,F.k,s),r0=F.dFrom,r1=F.rest[F.k+1];
     setCam(v,r0+(r1-r0)*s+Math.max(0,L.cruise-Math.max(r0,r1))*Math.sin(Math.PI*s));
     setTime(age2p(A.teff+(B.teff-A.teff)*s));                // the arc's own window, so its tip is under the camera
-    if(F.t>=1){F.i++;F.t=0;if(F.i>=n){const f=pathFocus(F.hops,SELN);
-      F.phase="out";F.a=ll2v(camLat,camLon);F.b=ll2v(f.lat,f.lon);F.d0=camDist;F.d1=pathDist(F.hops);}}
+    const hb=s<0.985?bearing(v,legPos(F,F.k,s+0.015)):null;if(hb!=null)F.hTrav=hb;
+    F.drift*=Math.exp(-dt/5);
+    RIG.head=wrapPi(F.hTrav+sideOf((F.k+s)/(n-1))+F.drift);RIG.tilt=tiltFor(camDist);
+    if(F.t>=1){F.at=F.k+1;F.k++;F.t=0;F.phase="dwell";F.hArr=RIG.head;
+      setTime(age2p(B.teff-0.5));          // half a year past its date: rounding in the time scale must not leave the waypoint undrawn while the camera sits on it
+      paintCine();
+      if(F.at<n-1&&F.dwell[F.at]<=0){F.phase="leg";F.dFrom=camDist;}}
     return;}
-  F.t=Math.min(1,F.t+dt/2.6);const e=ease5(Math.max(0,(F.t-0.2)/0.8));        // "out": a beat on the last waypoint, then back to the whole route
-  setCam(angle(F.a,F.b)>3.0?F.b:slerp(F.a,F.b,e),F.d0+(F.d1-F.d0)*e);
+  F.t=Math.min(1,F.t+dt/2.8);const e=ease5(F.t);              // "out": back to the whole route, righting as it goes
+  setCam(angle(F.a,F.b)>3.0?F.b:slerp(F.a,F.b,e),F.d0+(F.d1-F.d0)*e);RIG.tilt=0;RIG.head=0;
   if(F.t>=1)endPathFly();
 }
 // the growing end of the selected route at NOW; null until the root's date is reached
 function routeTip(){
   if(!SELN)return null;const ch=ancestry(SELN);if(NOW>ch[0].bp)return null;
-  for(let i=1;i<ch.length;i++){const t=arcTip(ch[i]);if(!t)return {v:ch[i-1].v};if(t.growing)return t;}
+  for(let i=1;i<ch.length;i++){const t=arcTip(ch[i]);if(!t)return {v:ch[i-1].v};if(t.growing){t.to=ch[i].v;return t;}}
   return {v:SELN.v};}
 // Playback with a lineage selected: keep the tip in view. It is left alone near the centre and
 // pulled harder the further out it drifts, always through a damper, so the camera never snaps.
-let FOLV=0;                                  // the follow camera's angular speed, rad/s
+// The rig leans into the chase: a little toward the horizon, looking the way the tip is going.
+let FOLV=0,FOLH=0;                           // the follow camera's angular speed, rad/s; the heading it last had a reason for
 function stepFollow(dt){
   const tip=routeTip();if(!tip){FOLV=0;return;}idle=0;
   const cur=ll2v(camLat,camLon),off=angle(cur,tip.v),cap=Math.acos(1/camDist);   // cap: angular radius of the visible disc
@@ -2302,8 +2450,91 @@ function stepFollow(dt){
   const g=Math.max(0,Math.min(1,(off-0.10*cap)/(0.45*cap))),want=Math.min(0.7,off/0.9)*g*g*(3-2*g);
   FOLV+=Math.max(-1.2*dt,Math.min(1.2*dt,want-FOLV));
   if(FOLV>1e-5&&off>1e-4&&off<3.0)setCam(slerp(cur,tip.v,Math.min(1,FOLV*dt/off)));
+  if(tip.to&&chord(tip.v,tip.to)>0.02){const b=bearing(tip.v,tip.to);if(b!=null)FOLH=b;}
+  RIG.tilt=Math.min(0.55,tiltFor(camDist));RIG.head=FOLH;
 }
+
+/* ===================== journeys: stretches of the reference backbone worth flying ===================== */
+// Each runs from an ancestor to a tip of one reference lineage. The names follow the backbone's own
+// titles and the notes shown on the way are its blurbs: the textbook tree, not sampled data.
+const JOURNEYS=[
+  {mark:"y", from:"CT",to:"C-Aus",  name:"Out of Africa to Sahul"},
+  {mark:"y", from:"P", to:"Q-SA",   name:"Into the Americas"},
+  {mark:"mt",from:"U", to:"U5-EU",  name:"After the ice"},
+  {mark:"y", from:"G", to:"G-Neo",  name:"First farmers into Europe"},
+  {mark:"y", from:"R", to:"R1b-Ib", name:"Steppe to the Atlantic"},
+  {mark:"y", from:"E", to:"E-Bantu",name:"The Bantu expansion"},
+  {mark:"y", from:"N", to:"N-Fin",  name:"Siberia to the Baltic"},
+  {mark:"mt",from:"B", to:"B4-Pac", name:"Across the Pacific"}];
+const markName=m=>m==="y"?"Y-DNA":"mtDNA";
+function journeyInfo(J){
+  const raw=TREES["tree_ref_"+J.mark];if(!raw||!raw.length)return null;
+  const by={};raw.forEach(d=>{by[d.id]=d;});
+  const ch=[];let c=by[J.to];while(c){ch.unshift(c);if(c.id===J.from)break;c=by[c.parent];}
+  if(!ch.length||ch[0].id!==J.from)return null;
+  let km=0;for(let i=1;i<ch.length;i++)km+=haversine(ch[i-1].clat,ch[i-1].clon,ch[i].clat,ch[i].clon);
+  const g=ch[ch.length-1].grp;
+  return {ch,km,col:g!=null&&g>=0?GRP[J.mark][g].c:STEM};}
+function paintJourneys(){
+  const el=$("journeys");if(!el)return;
+  el.innerHTML=JOURNEYS.map((J,i)=>{const I=journeyInfo(J);
+    return `<button class="row jr" data-j="${i}" style="--c:${I?I.col:STEM}">
+      <span class="dot"></span><span class="txt"><span class="nm">${esc(J.name)}</span>
+      <span class="src">${I?`${fmtAge(I.ch[0].bp)} to ${fmtAge(I.ch[I.ch.length-1].bp)} BP · ${fmtN(Math.round(I.km/100)*100)} km · ${I.ch.length} waypoints`:"Reference backbone"}</span></span>
+      <span class="ct">${markName(J.mark)}</span></button>`;}).join("");
+  el.querySelectorAll(".jr").forEach(b=>b.onclick=()=>{const i=+b.dataset.j;if(TOUR&&TOUR.i===i)handBack();else playJourney(i,false);});
+  syncJourneys();
+}
+// the rows are built once and only re-marked after that, so keyboard focus survives starting one
+function syncJourneys(){
+  document.querySelectorAll("#journeys .jr").forEach(b=>{const on=!!(TOUR&&TOUR.i===+b.dataset.j);
+    b.classList.toggle("on",on);if(on)b.setAttribute("aria-current","true");else b.removeAttribute("aria-current");});
+  const t=$("tourbtn"),on=!!(TOUR&&TOUR.all);t.setAttribute("aria-pressed",String(on));
+  t.innerHTML=on?ICO.pause+" Stop the tour":ICO.play+" Play all "+JOURNEYS.length;
+}
+async function playJourney(i,all){
+  const J=JOURNEYS[i];if(!J)return;
+  handBack();closeSearch();
+  const mine=TOUR={i,all:!!all,loading:true};paintCine();
+  if(MARK!==J.mark||SRC!=="ref"){MARK=J.mark;SRC="ref";await reTree();}
+  if(TOUR!==mine)return;                                   // something else took the camera while the tree loaded
+  const n=NODES.find(x=>x.id===J.to);
+  if(!n||!ancestry(n).some(a=>a.id===J.from)){TOUR=null;paintCine();toast("That journey is missing from the reference tree.");return;}
+  selectNode(n,true);
+  if(isMobile())setRail(false);
+  mine.loading=false;
+  if(!startPathFly({from:J.from,title:J.name,more:mine.all&&i+1<JOURNEYS.length}))TOUR=null;
+  paintCine();
+}
+function toggleTour(){if(TOUR&&TOUR.all)handBack();else playJourney(TOUR&&!TOUR.all?TOUR.i:0,true);}
+// The caption under a flight: which journey, which waypoint, and the backbone's own note on it.
+// It is rewritten when the flight reaches something, never per frame, so a screen reader hears
+// each waypoint once.
+let CINEBODY="";
+function paintCine(){
+  const el=$("cine"),F=PATHFLY,J=TOUR?JOURNEYS[TOUR.i]:null;
+  if(!F&&!(TOUR&&TOUR.loading)){el.classList.remove("on");syncJourneys();return;}
+  const fresh=!el.classList.contains("on");el.classList.add("on");      // coming up from hidden, everything is written, and so read out, anew
+  const put=(id,t)=>{const e=$(id);if(fresh||e.textContent!==t)e.textContent=t;};      // text that has not changed is not read out again
+  put("cinek",J?`Journey ${TOUR.i+1} of ${JOURNEYS.length} · ${markName(J.mark)} · textbook tree`
+    :`Route · ${markName(MARK)} · ${SRC==="obs"?"observed":"textbook tree"}`);
+  put("cinet",J?J.name:(F?`${F.hops[0].n.id} to ${F.hops[F.hops.length-1].n.id}`:""));
+  let line="",note="";
+  if(F){const H=F.hops;
+    if(F.at>=0){const n=H[Math.min(F.at,H.length-1)].n;line=`${Math.min(F.at,H.length-1)+1} of ${H.length} · ${n.title||n.id} · ${fmtAge(n.bp)} BP`;note=n.blurb||"";}
+    else line=`${fmtAge(H[0].n.bp)} to ${fmtAge(H[H.length-1].n.bp)} BP · ${fmtN(Math.round(F.km/100)*100)} km · ${H.length} waypoints`;}
+  const body=`<span class="cw">${esc(line)}</span>${note?`<span class="cn">${esc(note)}</span>`:""}`;
+  if(fresh||body!==CINEBODY){CINEBODY=body;$("cineb").innerHTML=body;}           // new nodes replay the entrance; the same text stays put
+  $("cineprev").hidden=$("cinenext").hidden=!J;
+  $("cinestop").setAttribute("aria-label",J&&TOUR.all?"Stop the tour":"Stop the flight");
+  syncJourneys();
+}
+$("cinestop").onclick=()=>handBack();
+$("cineprev").onclick=()=>{if(TOUR)playJourney((TOUR.i+JOURNEYS.length-1)%JOURNEYS.length,TOUR.all);};
+$("cinenext").onclick=()=>{if(TOUR)playJourney((TOUR.i+1)%JOURNEYS.length,TOUR.all);};
+$("tourbtn").onclick=toggleTour;
 let ROLL=0,SPOT=0,SPOTAT=[0.5,0.5,0.4];
+const FOCUSDROP=0.14,CINEBAR=$("cinebar");
 // each extra can be switched off on its own, so a before/after differs by one thing only
 // (bloom and multisampling are QUAL.bloom and QUAL.msaa): FX.grat=0 in the console, and so on
 const FX={grat:1,tilt:1,spot:1,vig:1,air:1,aa:1};
@@ -2323,6 +2554,9 @@ function frame(ts){
   if(PATHFLY)stepPathFly(dt);
   else if(FLY)stepFly(dt);
   else if(FOLLOW&&SELN&&!drag){if(playing||FOLV>0.002)stepFollow(dt);else FOLLOW=false;}   // finishes its approach after playback ends
+  if(!PATHFLY&&!(FOLLOW&&SELN&&!drag&&!FLY)){RIG.tilt=0;RIG.head=0;}     // nothing is flying: the rig rights itself
+  stepRig(dt);
+  if(PATHFLY)CINEBAR.style.transform="scaleX("+Math.min(1,PATHFLY.el/PATHFLY.total).toFixed(4)+")";
   idle+=dt;
   const resting=idle>6&&!drag&&!RM.matches&&$("veil").hidden&&!PATHFLY&&!FLY;
   if(resting)camLon-=dt*1.5;
@@ -2337,12 +2571,12 @@ function frame(ts){
   gl.viewport(0,0,w,h);gl.depthMask(true);
   gl.clearColor(0.031,0.043,0.078,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.BLEND);
-  const cam=camPos();
+  const R=rigView(ROLL*Math.PI/180),cam=R.eye;      // the idle lean rolls the camera left, so the pole leans right, as on a desk globe
   const proj=m4persp(52*Math.PI/180,w/h,0.05,120);
   proj[8]=railWidth()/innerWidth;           // centre the globe in the space beside the drawer
   proj[9]=-(TLH-TOPH)/innerHeight;          // and between the top bar and the timeline
-  const zc=norm(cam),xr=norm(cross(V(0,1,0),zc)),yu=cross(zc,xr),rr=ROLL*Math.PI/180,cr=Math.cos(rr),sr=Math.sin(rr);
-  const view=m4look(cam,V(0,0,0),V(yu.x*cr-xr.x*sr,yu.y*cr-xr.y*sr,yu.z*cr-xr.z*sr));   // the camera rolls left, so the pole leans right, as on a desk globe
+  proj[9]+=FOCUSDROP*Math.sin(camTilt)*(innerWidth/innerHeight<0.8?0.6:1);   // tilted, the focus sits low and the horizon gets the top of the frame
+  const view=m4look(cam,R.at,R.up);
   const mvp=m4mul(proj,view);lastMVP=mvp;lastCam=cam;
   const sun=ll2v(14,camLon+36),PX=DPR;
   gl.disable(gl.DEPTH_TEST);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
@@ -2506,6 +2740,7 @@ $("veil").addEventListener("pointerdown",e=>{if(e.target===$("veil"))closeVeil()
 $("guidebtn").onclick=()=>showVeil("guide");
 $("qsPlay").onclick=()=>{closeVeil();setTime(0);playing=true;paintPlay();};
 $("qsTrace").onclick=async()=>{closeVeil();await quickTrace();};
+$("qsTour").onclick=()=>{closeVeil();playJourney(0,true);};
 $("qsExplore").onclick=closeVeil;
 async function quickTrace(){
   if(MARK!=="y"||SRC!=="obs"){MARK="y";SRC="obs";await reTree();}
@@ -2580,6 +2815,7 @@ addEventListener("keydown",e=>{
     if(!$("veil").hidden){closeVeil();return;}
     if(!QRES.hidden){closeSearch();return;}
     if(typing)return;
+    if(PATHFLY||TOUR){handBack();return;}
     if(SELN||SELREC){selectNode(null);return;}
     if(isMobile()&&railOpen()){setRail(false);return;}
     return;}
@@ -2588,7 +2824,7 @@ addEventListener("keydown",e=>{
   if(!$("veil").hidden)return;
   if(e.key===" "){e.preventDefault();togglePlay();}
   else if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();
-    const st=(e.shiftKey?0.05:0.01)*(e.key==="ArrowLeft"?-1:1);playing=false;paintPlay();setTime(PT+st);}
+    const st=(e.shiftKey?0.05:0.01)*(e.key==="ArrowLeft"?-1:1);if(PATHFLY||TOUR)handBack();playing=false;paintPlay();setTime(PT+st);}
   else if(e.key==="/"){e.preventDefault();Q.focus();Q.select();}
   else if(e.key==="l"||e.key==="L"){setRail(!railOpen());}
 });
@@ -2602,7 +2838,7 @@ function progress(p,msg){const el=$("progress");el.querySelector("i").style.tran
   camDist=innerWidth/innerHeight<0.8?4.4:2.6;
   if(isMobile())Q.placeholder=innerWidth<=430?"Search":"Search the atlas…";
   setRail(!isMobile());
-  setTime(1);paintPlay();paintProv();paintLayers();paintSelection();
+  setTime(1);paintPlay();paintProv();paintLayers();paintSelection();paintJourneys();
   let seen=false;try{seen=localStorage.getItem("daa.seen")==="1";}catch(e){}
   const hashed=!!(URLSTATE.read()&&URLSTATE.read().has("m"));
   if(!seen&&!hashed)showVeil("welcome");
@@ -2637,6 +2873,8 @@ function progress(p,msg){const el=$("progress");el.querySelector("i").style.tran
   BOOTED=true;
   loadEarth().then(()=>{paintSea();loadCoast();});      // the ground streams in after the evidence
   $("qsPlay").disabled=false;$("qsTrace").disabled=false;
+  // the journeys list needs both reference trees for its dates and distances: a few KB each
+  Promise.all([getTree("y","ref"),getTree("mt","ref")]).then(()=>{paintJourneys();$("qsTour").disabled=false;});
   $("wstat").innerHTML=`${fmtN(AADRN)} genomes and ${fmtN(LBY.places.n||32902)} places loaded`;
 })();
 </script>
