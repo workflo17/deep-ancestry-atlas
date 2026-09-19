@@ -1,0 +1,10 @@
+# upstream downloads and clones - regenerate with build/fetch-sources.sh
+build/raw/
+build/clones/
+build/out/
+
+# the built data in d/ IS committed, so the site deploys without a build step.
+# see ATTRIBUTION.md: the routes layer is ODbL 1.0 and share-alike.
+
+.DS_Store
+node_modules/

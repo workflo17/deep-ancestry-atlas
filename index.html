@@ -1,0 +1,1368 @@
+<title>Deep Ancestry Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --void:#080B14; --deep:#0C1120; --panel:#10162A; --line:#1E2740; --line2:#2C3858;
+    --ink:#E9ECF6; --ink2:#A7B0C8; --ink3:#6C7793;
+    --g-ab:#896c05; --g-e:#45a903; --g-cd:#0b9dcb; --g-i:#817afe;
+    --g-gj:#b4065f; --g-no:#a102b9; --g-q:#fe0191; --g-r:#0c49fe;
+    --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  html,body{height:100%}
+  body{margin:0;background:var(--void);color:var(--ink);font-family:var(--sans);
+       overflow:hidden;-webkit-font-smoothing:antialiased}
+  #stage{position:fixed;inset:0;display:block;touch-action:none;cursor:grab;background:var(--void)}
+  #stage.drag{cursor:grabbing}
+  #labels{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+  .lbl{position:absolute;transform:translate(-50%,-50%);font-family:var(--mono);font-size:10.5px;
+       letter-spacing:.03em;white-space:nowrap;pointer-events:none;will-change:transform;
+       text-shadow:0 0 6px var(--void),0 0 3px var(--void),0 1px 2px var(--void)}
+  .lbl b{font-weight:500} .lbl i{font-style:normal;color:var(--ink3);font-size:9.5px}
+
+  .shell{position:fixed;inset:0;pointer-events:none;display:flex;flex-direction:column;
+         padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  header{padding:14px 16px 0;display:flex;gap:13px;align-items:baseline;flex-wrap:wrap}
+  h1{font-family:var(--serif);font-weight:400;font-size:26px;margin:0;line-height:1}
+  .sub{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3)}
+
+  .rail{position:absolute;top:0;right:0;bottom:0;width:330px;max-width:88vw;pointer-events:auto;
+        display:flex;flex-direction:column;background:linear-gradient(180deg,#0C1120F2,#080B14F7);
+        border-left:1px solid var(--line);backdrop-filter:blur(14px);
+        padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+        transition:transform .32s cubic-bezier(.4,.05,.2,1);overflow:hidden}
+  .rail.hide{transform:translateX(100%)}
+  .tabs{display:flex;border-bottom:1px solid var(--line);flex:0 0 auto}
+  .tabs button{flex:1;background:transparent;border:0;border-bottom:2px solid transparent;color:var(--ink3);
+    font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;padding:11px 3px;
+    cursor:pointer;transition:color .15s,border-color .15s}
+  .tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:#5E7BE0}
+  .tabs button:focus-visible{outline:2px solid #6E8CFF;outline-offset:-2px}
+  .railscroll{overflow-y:auto;overscroll-behavior:contain;padding:15px;display:flex;
+              flex-direction:column;gap:17px;flex:1}
+  .sect{display:flex;flex-direction:column;gap:8px}
+  .sect>h2{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+           color:var(--ink3);margin:0;font-weight:500}
+
+  .seg{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  .seg button{flex:1;background:transparent;border:0;color:var(--ink2);font-family:var(--mono);
+              font-size:10.5px;padding:7px 3px;cursor:pointer;letter-spacing:.03em}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button[aria-pressed=true]{background:#1A2240;color:var(--ink)}
+  .seg button:focus-visible{outline:2px solid #6E8CFF;outline-offset:-2px}
+
+  .lg{display:flex;gap:8px;align-items:flex-start;background:transparent;border:0;padding:5px 6px;
+      border-radius:3px;cursor:pointer;text-align:left;width:100%;transition:background .13s}
+  .lg:hover{background:#FFFFFF0A}
+  .lg:focus-visible{outline:2px solid #6E8CFF;outline-offset:-2px}
+  .lg .sw{width:9px;height:9px;border-radius:2px;flex:0 0 auto;margin-top:3.5px;box-shadow:0 0 7px currentColor}
+  .lg .nm{font-size:12px;line-height:1.35;color:var(--ink)}
+  .lg .src{display:block;color:var(--ink3);font-size:10px;font-family:var(--mono);margin-top:1px}
+  .lg .ct{font-family:var(--mono);font-size:9.5px;color:var(--ink3);margin-left:auto;padding-left:6px;
+          margin-top:2px;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .lg[data-off=true]{opacity:.34} .lg[data-off=true] .sw{box-shadow:none}
+  .lg[data-busy=true] .ct{color:#8FB4FF}
+  .sublist{padding-left:17px;display:flex;flex-direction:column}
+  .sublist .lg{padding:3px 6px} .sublist .nm{font-size:11px}
+
+  .card{border:1px solid var(--line);border-radius:4px;background:#0A0F1E;overflow:hidden}
+  .dh{padding:10px 11px 8px;border-bottom:1px solid var(--line);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .dh .code{font-family:var(--serif);font-size:21px;line-height:1}
+  .dh .tsfx{font-size:11.5px;color:var(--ink3)}
+  .dh .age{font-family:var(--mono);font-size:10px;color:var(--ink3);margin-left:auto;
+           font-variant-numeric:tabular-nums;white-space:nowrap}
+  .db{padding:10px 11px;display:flex;flex-direction:column;gap:8px}
+  .db p{margin:0;font-size:12.5px;line-height:1.5;color:var(--ink2)}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 9px;font-size:11px;margin:0}
+  .kv dt{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+         color:var(--ink3);align-self:center}
+  .kv dd{margin:0;color:var(--ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .card a{color:#8FB4FF;text-decoration:none;border-bottom:1px solid var(--line2)}
+  .chain{display:flex;flex-wrap:wrap;gap:3px;align-items:center}
+  .chain span{font-family:var(--mono);font-size:10px;color:var(--ink2);background:#151C33;
+              padding:2px 5px;border-radius:2px;cursor:pointer}
+  .chain span:hover{background:#1E2740;color:var(--ink)}
+  .chain i{font-style:normal;color:var(--ink3);font-size:9px}
+  .wp{position:absolute;transform:translate(-50%,-50%);pointer-events:none;will-change:transform}
+  .wp .dot{width:17px;height:17px;border-radius:50%;border:1.5px solid currentColor;
+    background:#080B14CC;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:9px;font-weight:500;box-shadow:0 0 10px currentColor}
+  .wp .cap{position:absolute;left:21px;top:-1px;white-space:nowrap;font-family:var(--mono);
+    font-size:10px;text-shadow:0 0 6px var(--void),0 0 3px var(--void)}
+  .wp .cap i{font-style:normal;color:var(--ink3);font-size:9px}
+  .frow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--ink2)}
+  .frow label{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3)}
+  input[type=number],input[type=search]{background:#070B16;border:1px solid var(--line);color:var(--ink);
+    font-family:var(--mono);font-size:11px;padding:5px 6px;border-radius:3px;width:88px}
+  input[type=search]{width:100%}
+  input:focus-visible{outline:2px solid #6E8CFF;outline-offset:1px}
+  .hits{display:flex;flex-direction:column;max-height:172px;overflow-y:auto;margin-top:4px}
+  .hit{display:flex;gap:7px;align-items:baseline;background:transparent;border:0;padding:4px 6px;
+    cursor:pointer;text-align:left;border-radius:3px;color:var(--ink)}
+  .hit:hover{background:#FFFFFF0A}
+  .hit .id{font-family:var(--mono);font-size:11px}
+  .hit .m{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--ink3)}
+  .hop{display:grid;grid-template-columns:19px 1fr auto;gap:6px 8px;align-items:baseline;
+    padding:5px 0;border-top:1px solid var(--line)}
+  .hop:first-child{border-top:0}
+  .hop .num{font-family:var(--mono);font-size:9.5px;color:var(--ink3);text-align:right}
+  .hop .nm{font-family:var(--mono);font-size:11.5px;cursor:pointer}
+  .hop .nm:hover{text-decoration:underline}
+  .hop .meta{grid-column:2/4;font-size:10.5px;color:var(--ink3);font-family:var(--mono);
+    font-variant-numeric:tabular-nums}
+  .hop .d{font-family:var(--mono);font-size:10px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .note{font-size:11px;line-height:1.5;color:var(--ink3);border-left:2px solid var(--line);padding-left:9px}
+  .note b{color:var(--ink2);font-weight:500}
+  .warn{border-left-color:#8A6A1E}
+
+  .qhead{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap}
+  .qn{font-family:var(--serif);font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+  .qt{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3)}
+  .qrow{display:flex;align-items:center;gap:7px;font-size:11.5px;padding:2px 0}
+  .qrow .sw{width:8px;height:8px;border-radius:2px;flex:0 0 auto}
+  .qrow .n{margin-left:auto;font-family:var(--mono);font-size:10.5px;font-variant-numeric:tabular-nums}
+  textarea{width:100%;height:120px;background:#070B16;color:var(--ink2);border:1px solid var(--line);
+    border-radius:3px;font-family:var(--mono);font-size:9.5px;padding:6px;margin-top:6px;resize:vertical}
+
+  #cov{width:100%;height:206px;display:block;border:1px solid var(--line);border-radius:3px;background:#070B16}
+  .covtip{font-family:var(--mono);font-size:10px;color:var(--ink2);min-height:15px;line-height:1.4}
+
+  .transport{pointer-events:auto;margin-top:auto;padding:11px 16px 13px;
+             background:linear-gradient(180deg,#080B1400,#080B14E8 34%);
+             display:flex;flex-direction:column;gap:6px}
+  .treadout{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .bigyear{font-family:var(--serif);font-size:37px;line-height:.92;font-variant-numeric:tabular-nums}
+  .bigyear em{font-style:normal;font-size:15px;color:var(--ink3);font-family:var(--mono);letter-spacing:.06em}
+  .epoch{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .scrubwrap{position:relative;height:29px;display:flex;align-items:center}
+  .ticks{position:absolute;inset:0 0 10px;pointer-events:none}
+  .ticks i{position:absolute;bottom:0;width:1px;height:5px;background:var(--line)}
+  .ticks i b{position:absolute;bottom:7px;left:0;transform:translateX(-50%);font-family:var(--mono);
+             font-size:8.5px;color:var(--ink3);font-weight:400;white-space:nowrap}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;
+                    margin:0;cursor:pointer;position:relative;z-index:2}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line);border-radius:2px}
+  input[type=range]::-moz-range-track{height:2px;background:var(--line);border-radius:2px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;
+      background:var(--ink);margin-top:-5.5px;box-shadow:0 0 11px #9FB4FF,0 0 3px #000}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border:0;border-radius:50%;background:var(--ink);
+      box-shadow:0 0 11px #9FB4FF}
+  input[type=range]:focus-visible{outline:2px solid #6E8CFF;outline-offset:3px;border-radius:3px}
+  .tbtns{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .btn{background:#131A30;border:1px solid var(--line);color:var(--ink);font-family:var(--mono);font-size:11px;
+       padding:6px 10px;border-radius:3px;cursor:pointer;letter-spacing:.03em;transition:background .14s,border-color .14s}
+  .btn:hover{background:#1B2440;border-color:var(--line2)}
+  .btn:focus-visible{outline:2px solid #6E8CFF;outline-offset:1px}
+  .btn[aria-pressed=true]{background:#24305A;border-color:#3C4C7E}
+  .btn.play{min-width:72px}
+  .spd{margin-left:auto;display:flex;gap:4px;align-items:center}
+  .spd label{font-family:var(--mono);font-size:9.5px;color:var(--ink3);letter-spacing:.1em;text-transform:uppercase}
+  select.btn{padding:5px 6px}
+
+  .toggle{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:14px;z-index:6;pointer-events:auto}
+  body.railopen .toggle{right:344px}
+  body.railopen .transport{padding-right:346px}
+  .hint{position:absolute;left:16px;bottom:calc(110px + env(safe-area-inset-bottom,0px));
+        font-family:var(--mono);font-size:10px;color:var(--ink3);letter-spacing:.05em;pointer-events:none;
+        transition:opacity .7s;line-height:1.7}
+  .hint.gone{opacity:0}
+  .boot{position:absolute;left:16px;top:calc(56px + env(safe-area-inset-top,0px));font-family:var(--mono);
+        font-size:10px;color:var(--ink3);letter-spacing:.05em;line-height:1.7;pointer-events:none;
+        transition:opacity .5s}
+  .boot.gone{opacity:0}
+
+  @media (max-width:880px){
+    body.railopen .toggle{right:14px} body.railopen .transport{padding-right:16px}
+    h1{font-size:20px} .bigyear{font-size:30px} .hint{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){ .rail{transition:none} }
+</style>
+
+<canvas id="stage"></canvas>
+<div id="labels" aria-hidden="true"></div>
+<div id="waypoints" aria-hidden="true" style="position:fixed;inset:0;pointer-events:none;overflow:hidden"></div>
+
+<div class="shell">
+  <header><h1>Deep Ancestry Atlas</h1><span class="sub" id="hdrmode">Y-chromosome · observed</span></header>
+  <button class="btn toggle" id="railtoggle" aria-pressed="true">panel</button>
+  <p class="boot" id="boot">loading layers…</p>
+  <p class="hint" id="hint">drag to orbit · scroll to zoom<br>click any lineage, site or sample to inspect it</p>
+  <div class="transport">
+    <div class="treadout">
+      <div class="bigyear" id="year">present <em>day</em></div>
+      <div class="epoch" id="epoch"></div>
+    </div>
+    <div class="scrubwrap"><div class="ticks" id="ticks"></div>
+      <input type="range" id="scrub" min="0" max="1000" value="1000" step="1" aria-label="Time, years before present"></div>
+    <div class="tbtns">
+      <button class="btn play" id="play" aria-pressed="false">▶ play</button>
+      <button class="btn" id="rewind">↺ reset</button>
+      <button class="btn" id="tmode" aria-pressed="false" title="Accumulate: records persist once reached. Window: only records dated near the current year.">accumulate</button>
+      <div class="spd"><label for="speed">rate</label>
+        <select class="btn" id="speed">
+          <option value="0.35">¼×</option><option value="0.7">½×</option>
+          <option value="1.4" selected>1×</option><option value="3">2×</option><option value="6">4×</option>
+        </select></div>
+    </div>
+  </div>
+</div>
+
+<aside class="rail" id="rail" aria-label="Controls">
+  <div class="tabs" role="tablist">
+    <button id="tab-layers" role="tab" aria-selected="true">layers</button>
+    <button id="tab-inspect" role="tab" aria-selected="false">inspect</button>
+    <button id="tab-query" role="tab" aria-selected="false">query</button>
+    <button id="tab-cover" role="tab" aria-selected="false">coverage</button>
+  </div>
+  <div class="railscroll" id="pane-layers">
+    <div class="sect"><h2>Lineage tree</h2>
+      <div class="seg" role="group"><button id="mY" aria-pressed="true">Y-DNA</button><button id="mM" aria-pressed="false">mtDNA</button></div>
+      <div class="seg" role="group" style="margin-top:6px">
+        <button id="srcObs" aria-pressed="true">observed · AADR v66</button>
+        <button id="srcRef" aria-pressed="false">reference backbone</button></div>
+      <div class="seg" role="group" style="margin-top:6px">
+        <button id="posC" aria-pressed="true">centroid</button><button id="posO" aria-pressed="false">oldest sample</button></div>
+      <div class="seg" role="group" style="margin-top:6px" aria-label="Tree detail">
+        <button id="dt0" aria-pressed="true">major</button><button id="dt1" aria-pressed="false">standard</button><button id="dt2" aria-pressed="false">full</button></div>
+      <div id="treenote"></div>
+    </div>
+    <div class="sect"><h2>Lineage groups</h2><div id="legend"></div></div>
+    <div class="sect"><h2>Find a clade</h2>
+      <input type="search" id="csearch" placeholder="R1b, U5a, J2a…" aria-label="Search clades" autocomplete="off">
+      <div class="hits" id="chits"></div></div>
+    <div class="sect"><h2>Filters</h2><div id="filters"></div></div>
+    <div class="sect"><h2>Evidence layers</h2><div id="layers"></div></div>
+    <div class="sect"><h2>Provenance</h2><div id="prov"></div></div>
+  </div>
+  <div class="railscroll" id="pane-inspect" hidden>
+    <div class="sect"><h2>Selection</h2><div class="card" id="dossier"></div></div>
+    <div class="sect"><h2>Migration path</h2><div class="card" id="pathcard"></div></div>
+    <div class="sect"><h2>Record</h2><div class="card" id="recins"></div></div>
+  </div>
+  <div class="railscroll" id="pane-query" hidden>
+    <div class="sect"><h2>Cross-layer query</h2><div id="query"></div></div>
+  </div>
+  <div class="railscroll" id="pane-cover" hidden>
+    <div class="sect"><h2>Records per millennium</h2>
+      <canvas id="cov" width="640" height="412"></canvas>
+      <div id="covleg" style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:2px"></div>
+      <p class="covtip" id="covtip">Hover the chart to read counts.</p>
+      <p class="note warn"><b>This chart is the sampling-bias check.</b> Where a curve collapses,
+      that is where nobody has dug, sequenced or dated — not where nobody lived. Read every other
+      view against it.</p>
+    </div>
+  </div>
+</aside>
+
+<script>
+"use strict";
+const LANDMASK="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAQABIAQgBICAgJISEhJISMhLAAEJJCRkJICggJIQkgJAQEhJAVEBJCUkBICggIASkgJAQEhJATEBACwkDICAgKAQMk4IQMgJgDMHRCBsDcAJgIIQNgKAAMgIEBMBACDsDQABkQAwdiZAAcgLEDM2BGjszEATgQYwdiRogciZkjMGHGDszMkTgSc0d25shMiZknMWtmLsSMk5gXM89m1kxMm4tnMWtnvsW9t7iXF9/mXtl8y0tvc6tvvuW9t/jW19ruXt952ntt86+vvP21v/v31972399522tv/++vvP29v/P3197u3155++tv722vvf3/v/L319/e/15bu/9v523vvb3/vbJ299/K/197O/9/5+3uvJ3/vfJ239/O3195O/9/Ze2+vZW3v/J23t7a3n97K39/5+28vZW1//ZW3t7O2/17K29/5e38vZW1+/dW3t7K2/l7K2v37az8vZWx+/dW3s7KW/l7K2Pn7a38nZWx+/dW3s7KS/k7K2PnZaX8nZWR83dWTs7LS7k7KzPn76S8nJWXcndWZs7NSbk7Kytn5qSMnJGTcndSZs7Nabk7IStn5qTMnJGTcndSds7MaZk7Iy/n7qTsnJHTcnNCfs7NaZk5Iy/n5qTsnJPTc3NCXs7cSdk5Iyfn5oT8nLvTM3NCTs7NCdk5cydn5oT8nJnTs3NCTs7Mifk5N6dn5oT8nJkTs3Nibs7Mifk5N6fn5qTcnpsT83NmTs7NCbk9N6fn58TcnpuT83NuTs/NSbk9N6fn59TcnJuTc3NuTs/Nebk9N6fn59TcnpuTcntuTs/Pqbk5Nyfn5tycnpvTcnNuTs/Pqbk9Nyfn5tycnptTc3NuTs7Nqbk9N6fm5tycnptTc3JuTs/NuTk5N6fn5NycnJNTc3NuTs3JuTk5J6fn5NycnptTc3JuTs3JuTk9J6fm5tycmptTc3NOTs3JuTk9J6fm9pycmpNTc3tuTs3NqTk9J6fm9tycnpNTc3pOTs3NOTk1J6fm9tycmptzc3pOTs3JuTk1J6fm9tycmpNzc2pOTs3JuRk9J6fm9NycmpNzM2pOTs3ouDk1J+fm1NycmpNxM2puTs3ouDk1J+dm1NycmpFxc2pOTsypuTk1J+Nm1JycmlFzcmpOxsypuTk1I+Pm9JycmFFzc2pOxs2oOTk1I+bk1JycmVFzcmJGxsnoOTk1o+bm9JyMkVFzcmpGxMnoOT03o+bkxIyOkZFzempGzcmIOTUjo+bkxIyKkZFzempGzcmIGRUjI+fkxIyKkRFzam5GzcmoGRUjI+b01IyKkxFzam5OzcmJGRUjI+bU1JyKkxFzak5OzsmJORUjI+bUnJyIk1NzKk5OzKgJORUnJ2bUnJyckxNzKk5OzKgZOTEnp+bUnJicUxNyKkZOzKkZMTEnJ+ZUjJyYURNyIk5OzKkZMTmjJuRUjJiYUTNiYk5OzKk4MTGjJuRUjJiYUzNick5OyKkYMTGjJsREjJyYU3NiYk5NyKkYMTGnpsTknJyQUzFiYkZNyYkYMTGnZuTknJyQUzFiYkZNyckYMSGnZuTEjJ6QkzFiakZNyMg5OSUnZsTUjJiQkzNiakbMiKkZOSEjZ8TUjJiQ0TNySkbMiKkZMSGjZ8TUjJgQ0TNySkbOiKkZMSGjZ8TUjJ4QUzNyQkbPiKkZNSGiZ+SUjJ4RUzNiQk7PiKkZPSGiZsSEjJ4RUzN6QkbNiCkZPSGmZsSEjJoRUzJqQkbNiCkZNSGmZvSEjJoRUzJ6QkzNiAkZNSGmZPSEjJoRUzJqQkzN6AkZNSGmZPSEnJoRUzJqQkzJ6CkZNSemZNSEmJpRUzJqQkzJqCkZNSemZNSEmJJRUzJqSkzJqAk5NaemZNSEmJJTUzJqTkzJqAkxJaem5NSEmJJTU3JqSk3JqQkxJaem5NSUmJJTU3JKSk3JqQkxJaem5NScmJJTU2JKTk3JqSkxJaem5NSUmpJTUmJKTk3JKSkxJaeg5JSUkpJTUmJKTk3JqTk1JaegxJSckpJTUmJKTkHJqTklJaekxJSckpJTUmpKTkGJKSklJaekxJSckpJTU0pKTkGJKSklJaeklJScghJTc0pKTkmJKTklJaOklJScghJTUkpKTkkpKTklJabmlJScghJTUkpKRkkpKTklJabilJScglJTUkpKRkkpKTkFJabklJScglJSckpKREUpKTkFpaaklJSMglJSckpKTEUpKTkFpaaklJSIglJScgpKTcEpKTkFpaTklJSIilJScgpKTUEpKTEFpaTglJSaglJScApKSUEpKRElpaTglJSaglNSYApKSUEpKREFpaTgFJSSglJSYkpKScEpKRUFpaTAlJSSglJSMkpKScEpKTUFpaTAlJSSglJSKkpKSYEpKSUFp6Rg1JSSglJSKkpKSYEpKSUFpaRQ1JSSAlNSagpKSYEpKSUFpKRU1JSSAlNTSgpKSaGpKSUFpKRU0JSSAlNSSgpISakgKSUFpqSUVJCSAkNSSgpISakgISUFpqSUFJCaQkNCSgpISamhICUFhoSUFJCaQkFSSgpMSSmpIDUFhoSUFJCSQkFASgpMCSmpIDWFhoSUFJiSQkFAagoMCSkpICWFgqCUFBiSUkNAagoNCSkpICWFgoCUVBkSUlJAagoFSSmpICSFgoDUVBgSUlJASgoFAampMCSkhoDUFBqSUlJASAoFAampMCSkpoCUFBoCUlNBSEoFBakpOCSkpoCQVAoCUlNASEgNASkpPASkpoCQFAoCUlNACEhNASEpNASkpoCQlAoCUlNYCEhNASEpFASkpoAQlIoCQlJICEhNASEpFASkpqAQkJoCQlJICEhNASEoFQSEpLAQkBoCQlIoCEhNQSEoBQWEpJAQkJoCQlEoCAhNYSEgJQSEppAQkJoCQlAKCAhNISEgNQSEopAQEJqCQlBKCAhFISEgNQWEohAQEJrCQkBKCAhFISEgNQWEoBQQEIpCQkBKCAhFISEgNIWFoJQQEIpCQkBqCghBISEgFIWFgJQQEIpCQkAKCghBKSAgFIWFgJQQEIpCQkAICgtBKSEgFIWEgBQUEIJCQkAICgkBKSEgFIWEgBAQEIJSQEAoCgkBKSggFIWEgBAQEgJSQEAoCgsBKSggBIWEgBAUEgJSQEEoCgkBISAgBKWAgFAUEgJSUEAICgkBISEsBKSAglAUEgJCQEEICgkFISEkBKSAgFAUEgJCQkEIaAEFISgkBKSEohBUEgpCQkEISAkFoSgkBISEghBQEgpCQFkISElFoagkBISEghCQEgpCQEkICAkFIaAkFISEolCQEoJCUFkICAkFIaAkFISAklAQkgpCQUkoCAkFoSAlFISgshCQEgpCQUkoCAEFISAkFYSAslAQEgpCQUkoCAFloSAkFYSAklAQAopCQEkoCAFloSAlFISCklAQAopCQEgoCAEloSAkFISCklAQAopCQUoqCAEloSAEFISAklAQAspCQUooCAEloSAEFIWAklAQAkpCQQgoCAEloSAEFIWClFQQAkpCQQgoCAEloSAEFISCEFQQAEpCUQgoCAEloSAAlISCElAQAkpCUQAoCAUlqSAAlISiElAQAkpCQQAoCAUlqCAAlKSiAlAQCgpCQQAoSEUlqCAElISCAFAQCgpQQQAoSEUFoCAEFISCAFAQigpQQQAoSEUFoCAQFKCCAFAQigpAQQAoCAUBoCAQFaCCAFCQigpAQQAoAAUBoCAUFaCCAFCQCgpAQSAqAAUBoCAUFYCCAFCACgJAQSAqQAUBoCAUFYCCQFQACgJAQSgqQAUBoAAVFICCQFQACgJAQSgqAAWBqAAVBICCUFSACgJAASgoAAWBqAAVBICCUFSACgJRASooAAWBqAAVBKACUFQAigJRASoIAEWhqAAUBKICUFQACgJRASoKAAWgqAAUBaICVFAACkJRASoIRAWgoAAUBKICVBAACkBRASoIRAWgoAAUBKICVBCACkBRASgIRAWoqAAUgKICVBCICkBBASgIREWooAAUgKICUBCIikBBASgIRQWoqBAVgIICUBCIikBRASgARQWooBAVgYICUBCIilBRASgABQWooBAVgaICUACKClBBISoABUWgIBAVgaICUACKClBBISoABUWggBAVoYJCUAAKilBBISoCRUWggBQVoIJCVAAKilABISoCRUWgiBQUoYJCUACOikARISpCBcWgiBQUoQJCUAQKikABISpCBcWggBQUgQJCUACKikEBKShCBcWgABQVgQJCUISKikEBKShCBYSgABQUgQJCUIQKikEBOSgCBYSgABQUgwJSUIQKiEEBKSoCBYSgABQUgwJSUAQKCEEBKSgGBYSgABQQgwJSUAQKCEEBOCgGBeSgABQQgwJSUAQKCEEBKCgGBaSgCBUQgyJSUAwKCEEBKCAGBaSgCBUQgwJwUAwKSEEBKiAGBaSgCBUQggJQUIwKSEERKiAGBaSgCBUQggJQQIwKSEERKiAEBaCgGBWQgiJwQIwKSEERKCAEBaCAEBWQgiJQQIwKQEERKCBERaCAEBWQoiJQQAgKQEEhKCAFBaCIGBWQoiJQQIgKQAEhKCAFBaCAGBSAgiJQQAoKQAEhKCAFBaCAGBSAokJQQIoKQAExKAAFBaCAEBSAAkJQQAoKwAExKABFBaCAFBSAAkJQAAoKQAExKAAFhaCAFBSAAkJQAAoKQAEhKAAFhKAAFBSAAkJQAAoKQAEpKAAFhKAAFBSBAkJQAAoKQQEpKAAFhKAAFBSAAkJQAAoIQQEoKAAFhKAAFBSAAlJQAAoIQQEoKAIFhKAAFBCCIlBQAAoIQREoKABFpKAAFBCColBQBAoIQQEoKABFoKAAFBCCIlBQBIpIQQEoIARFoKAAFBCCAlBQAIpAQQEoIARFoaAIFJGCAlBQAIpCQQEoIARFoKAIFIGCAlBACIpCQREoIAQFoKAAFIGCAlBECIpAQREoIgUFoKgAFIWCAlBACApAQREoAgUFoIgQHIWCIlBECgpAUREoCgUFoIgQFIGCIlBECgpAEQEoCgUFoIgQFICCIlAUCgpAEQEoAgVFoIgUFIAiAlAUCgpAEQEoAgVFoCgUFIAiAlAUCopAUSkoAkVEoCgUFIAiAlAEiopAUSkoAkVEoCgUFIEiAlAEiohAUSgoAEUEoAgUFIGiElAEioxAUSgoAkUEoAgUEYGiEFAEighAUSgoAkUFoAgUEYGiUFAEighAESgiAkUloAgUEYGiUFAEighAESgiAkUhoAgUEYAiUEQEigpAESgiAkWhoAgUEYAiUEQEikJAESgiAkWhiAgUEYAiUEQEikJAESgiAkWgiAgUBYAiUEQEikIRESgiAkWgiAgUhaAiUEQEikARESgqAEWgiAgchSAiUEQEikARESgKQEWgiAgUgSIiUESEikARESgKQUWgiAgUgSIiUBSAikARESgKRUSgiAgVgSIiUBSAikARETgCRUSgKAgVgSIiUBSCikARESoCRUSgKAgVgSIiUASKiEBRECoCRUSgKAAVgSIiVASKiEBRECoCRUSgKBQVgSIgVASKiEBRECoCRUCgCBQRgaIgVASKiEBRACoCRUCoCBQRgaIgVASKgEARKCICRUCoCBQBgaIgVASKgFARKCICRUGoCBQBgSJwRASKgFARKAICRUGoCBQBgSJQRASKgFARKAICRUCICBQBoSJQBASKgFARKAICReCICBQBoSJQBASKgBARKAJCRaCICBQBoSJQBASKgBERKAJCRaAICBQBoSJQBASKwBERKAJCRaAICBQBISJQBISKQBEQKAJCRaAICBQBIyJQBISKQBEQKAJCRKAICBSBIiJQBISKQBEQKAJGRKAICBWBIiBQBISIQBEQKAJGRKAICBWBIiBQBIyIQBEQKAJEQKAICBWBIiBQBIyIQBEQKgJFQKAICBGBIiBQBIyAQBEQIgJFQKAIGBGBIiBQBIiAQBEQIgJFQKAIGAGBIiBUBIqAQBEQIgJFQKAIEAGBIiBEBIqAQBEwAgJFQKAIEAGBIiBEBIqAQBEgAgJFQIgIFAGBImAEBIqAQBEgAgIFQIgIFAGBImAEBIqAABEgAgIFQAgIFAGBAkAEBAqAEBEoAgIFwAgIFAABIkAEBAqAEBEoAAIFgAgIFAABIkAEBAqAERAoAAIEgAgIFAAhIlAABAgAERAoAAIEgAgIEAAhIFAABAgAARAgAEJEgAAIEAAiIEAABAgAARAgAEIAoAAIAAACIEAABAAAARAgAAYAgAAIAAACIUAABAAAARAgAARAgAAIAAACIEAADAAAARAAAARAgAAIAAACIEAACAAAARAAAARCgAAIAAACIEAACIAAARAAAARAgAAQAAACIAAACIAAARAAAARAgAAQAAACIAAACIAAATAAAARAgAAQAAACIAAACIQAASAAAARAAAAQAAECQAAACAQAASAAAAQAAAAQCAACQAAACAQAACAAAAQAAAAQCAAAQAAACAAAACAQAACAAAAQAAAAQAAACAAAACAQAACAAAAQAAAAQAAAAAAAACAQAACAAAAQAAAAQAAAAAABACAAAACAQAAAAAAAQCAAAAABACAAAACAQAAAAAIAQAAAAACBAAAAAgCAAAAAAAIAAAAEAACBAAAABACAAAAAAAIBAAAEAAABAAAAAACAAAAAAAIBAAAEAAABAAAABAIAAAgAAAIAAAAAAAABAAAABAIAAAAAAAIAAAAIBAAAAAAABAAAAAAAAAIAAAAIBAAAAAAABAAAABAIAAIAAAAIAAAAABAABAAAABAIAAAAAAAIAAAAIBAAAAAAABAAAAAAIAAIAAAAIBAAAAAAABAAAABAIAAAAAAAIAAAAAAAABAAAABAIAAAAAAAIAAAAAAAABAAAABAAAAAAAAAIAAAAIAAABAAAABAAAAAAAAAIAAAAIAAAAAAAABAAAAAAAEAIAAAAIAAAAAAAABAAAAAAAEAAAAAAIAAAAAAAgDAAAAAAAEAAAAAAIAAAAAAAgAAAAAAAAEAAAAAAIAAAAAAAgAAAAAAAAEAAAAEAAAAAAAAAgAAAAAAAAEAAAAEAAAAAAAAAgAAAAAAAAAAIAAEAAAAAAAAAgAAAAgAAAAAIAAEAAAAAAAAAgAAAAgAAAAAAAAEAAAAAAAAAAAAAAgAAAAAAAAEAAAAAAAAAAAAAAgAAAAAAAAEAAAAEAAAAAAAAAgAAAAAAAAEAAAAEAAAAAAAAAgAAAAAAAAEAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAQACAAAAAQAAACQCAAQEAAACEAACQkRACQgAISUgJASUgJASEEJCSkRICSghISUgpISUgJASUFJCSkRICSkpJSWgpISUjJASUnJKSkZJCSkNJSWkpJSUjtJSUnpKSk9paSkdpaW19JSUntLSWjpOS2/paS09p6W19JSW3tLSWnpOS2tpaS29paX1/Jye3tNTenpPT+vpKT2/56f0/Jaf1/Nzfn7Pz/n5PT+v5+f8vJ6f9/N7fl7P7/l5P7/v5/X8vN/f9/N+ft/P+/t5v7/v5/X8vN7f8/N6f17P7/l5Pb/n5/f8vp/f8/t7f//v7/39v7//9/f//t7f////////////////";
+</script>
+<script>
+"use strict";
+/* ===================== math ===================== */
+const V=(x,y,z)=>({x,y,z});
+function m4mul(a,b){const o=new Float32Array(16);
+ for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];o[i*4+j]=s;}return o;}
+function m4persp(fov,asp,n,f){const t=1/Math.tan(fov/2),o=new Float32Array(16);
+ o[0]=t/asp;o[5]=t;o[10]=(f+n)/(n-f);o[11]=-1;o[14]=2*f*n/(n-f);return o;}
+function m4look(e,c,u){const z=norm(sub(e,c)),x=norm(cross(u,z)),y=cross(z,x);
+ return new Float32Array([x.x,y.x,z.x,0, x.y,y.y,z.y,0, x.z,y.z,z.z,0,
+  -(x.x*e.x+x.y*e.y+x.z*e.z),-(y.x*e.x+y.y*e.y+y.z*e.z),-(z.x*e.x+z.y*e.y+z.z*e.z),1]);}
+const sub=(a,b)=>V(a.x-b.x,a.y-b.y,a.z-b.z);
+const cross=(a,b)=>V(a.y*b.z-a.z*b.y,a.z*b.x-a.x*b.z,a.x*b.y-a.y*b.x);
+const dot3=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
+const norm=a=>{const l=Math.hypot(a.x,a.y,a.z)||1;return V(a.x/l,a.y/l,a.z/l);};
+const ll2v=(lat,lon)=>{const p=lat*Math.PI/180,t=lon*Math.PI/180;
+ return V(Math.cos(p)*Math.sin(t),Math.sin(p),Math.cos(p)*Math.cos(t));};
+function slerp(a,b,s){let d=Math.max(-1,Math.min(1,dot3(a,b))),o=Math.acos(d);
+ if(o<1e-6)return V(a.x+(b.x-a.x)*s,a.y+(b.y-a.y)*s,a.z+(b.z-a.z)*s);
+ const s0=Math.sin((1-s)*o)/Math.sin(o),s1=Math.sin(s*o)/Math.sin(o);
+ return V(a.x*s0+b.x*s1,a.y*s0+b.y*s1,a.z*s0+b.z*s1);}
+const hex2rgb=h=>[parseInt(h.slice(1,3),16)/255,parseInt(h.slice(3,5),16)/255,parseInt(h.slice(5,7),16)/255];
+const R_EARTH=6371;
+function haversine(la1,lo1,la2,lo2){const r=Math.PI/180,dla=(la2-la1)*r,dlo=(lo2-lo1)*r;
+ const a=Math.sin(dla/2)**2+Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dlo/2)**2;
+ return 2*R_EARTH*Math.asin(Math.min(1,Math.sqrt(a)));}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtN=n=>n.toLocaleString("en-US");
+
+/* ===================== GL ===================== */
+const cv=$("stage");
+const gl=cv.getContext("webgl2",{antialias:true,alpha:false})||cv.getContext("webgl",{antialias:true,alpha:false});
+function sh(t,src){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);
+ if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s),src);return s;}
+function prog(v,f){const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,v));
+ gl.attachShader(p,sh(gl.FRAGMENT_SHADER,f));gl.linkProgram(p);
+ if(!gl.getProgramParameter(p,gl.LINK_STATUS))console.error(gl.getProgramInfoLog(p));
+ p.u=n=>gl.getUniformLocation(p,n);p.a=n=>gl.getAttribLocation(p,n);return p;}
+function buf(d,t){const b=gl.createBuffer();const tt=t||gl.ARRAY_BUFFER;
+ gl.bindBuffer(tt,b);gl.bufferData(tt,d,gl.STATIC_DRAW);return b;}
+function dynbuf(d){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);
+ gl.bufferData(gl.ARRAY_BUFFER,d,gl.DYNAMIC_DRAW);return b;}
+const ATTRS=8;
+function useProg(p){gl.useProgram(p);for(let i=0;i<ATTRS;i++)gl.disableVertexAttribArray(i);}
+function bind(p,n,b,size){const l=p.a(n);if(l<0)return;gl.bindBuffer(gl.ARRAY_BUFFER,b);
+ gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,size,gl.FLOAT,false,0,0);}
+
+/* ===================== globe ===================== */
+const SPH=(()=>{const LA=72,LO=144,pos=[],idx=[];
+ for(let i=0;i<=LA;i++){const p=(i/LA-0.5)*Math.PI;
+  for(let j=0;j<=LO;j++){const t=j/LO*2*Math.PI;pos.push(Math.cos(p)*Math.sin(t),Math.sin(p),Math.cos(p)*Math.cos(t));}}
+ for(let i=0;i<LA;i++)for(let j=0;j<LO;j++){const a=i*(LO+1)+j,b=a+LO+1;idx.push(a,b,a+1,b,b+1,a+1);}
+ return {p:new Float32Array(pos),i:new Uint16Array(idx),n:idx.length};})();
+const sphP=buf(SPH.p),sphI=buf(SPH.i,gl.ELEMENT_ARRAY_BUFFER);
+const pGlobe=prog(
+`attribute vec3 aP;uniform mat4 uMVP;uniform vec3 uCam;varying float vF;varying vec3 vN;
+ void main(){vN=aP;vec3 vd=normalize(uCam-aP);vF=1.0-max(dot(normalize(aP),vd),0.0);
+ gl_Position=uMVP*vec4(aP,1.0);}`,
+`precision mediump float;varying float vF;varying vec3 vN;uniform vec3 uSun;
+ void main(){float lam=max(dot(normalize(vN),normalize(uSun)),0.0);
+ vec3 base=mix(vec3(0.031,0.043,0.078),vec3(0.055,0.075,0.125),lam);
+ gl_FragColor=vec4(base+vec3(0.10,0.22,0.48)*pow(vF,3.2)*0.85,1.0);}`);
+
+const STARN=1400,sp=new Float32Array(STARN*3),sb=new Float32Array(STARN);
+(()=>{let s=20240919;const R=()=>(s=(s*1103515245+12345)&0x7fffffff)/0x7fffffff;
+ for(let i=0;i<STARN;i++){const u=R()*2-1,th=R()*2*Math.PI,r=Math.sqrt(1-u*u);
+  sp[i*3]=r*Math.cos(th)*38;sp[i*3+1]=u*38;sp[i*3+2]=r*Math.sin(th)*38;
+  sb[i]=0.16+Math.pow(R(),2.6)*0.84;}})();
+const starP=buf(sp),starB=buf(sb);
+const pStar=prog(
+`attribute vec3 aP;attribute float aB;uniform mat4 uMVP;uniform float uPX;varying float vB;
+ void main(){vB=aB;gl_Position=uMVP*vec4(aP,1.0);gl_PointSize=(0.7+aB*1.7)*uPX;}`,
+`precision mediump float;varying float vB;
+ void main(){vec2 d=gl_PointCoord-0.5;float a=max(0.0,1.0-length(d)*2.0);
+ gl_FragColor=vec4(vec3(0.72,0.78,0.95)*vB,a*a*vB*0.95);}`);
+
+const LANDN=48000;
+const landPos=(()=>{const bin=atob(LANDMASK),out=[],GA=Math.PI*(3-Math.sqrt(5));
+ for(let i=0;i<LANDN;i++){ if(!((bin.charCodeAt(i>>3)>>(i&7))&1))continue;
+  const y=1-(i/(LANDN-1))*2,lat=Math.asin(y)*180/Math.PI;
+  let lon=(GA*i)%(2*Math.PI)*180/Math.PI; if(lon>180)lon-=360;
+  const v=ll2v(lat,lon);out.push(v.x,v.y,v.z);} return new Float32Array(out);})();
+const landB=buf(landPos),LANDCOUNT=landPos.length/3;
+const pLand=prog(
+`attribute vec3 aP;uniform mat4 uMVP;uniform vec3 uCam,uSun;uniform float uPX;varying float vA,vL;
+ void main(){vec3 n=normalize(aP);vec3 vd=normalize(uCam-aP);
+ vA=smoothstep(-0.06,0.30,dot(n,vd));vL=0.34+0.66*max(dot(n,normalize(uSun)),0.0);
+ vec4 mv=uMVP*vec4(aP*1.0035,1.0);gl_Position=mv;
+ gl_PointSize=max(1.0,(2.8*uPX)*(1.0/max(mv.w,0.35)));}`,
+`precision mediump float;varying float vA,vL;
+ void main(){vec2 d=gl_PointCoord-0.5;float r=length(d)*2.0;if(r>1.0)discard;
+ vec3 c=mix(vec3(0.26,0.34,0.49),vec3(0.66,0.75,0.90),vL);
+ gl_FragColor=vec4(c,(1.0-r*r)*vA*0.80);}`);
+
+/* ===================== camera ===================== */
+let camLat=26,camLon=24,camDist=3.05,tgt=null,idle=0,drag=false,lx=0,ly=0,tpd=0;
+let lastMVP=null,lastCam=V(0,0,3),DPR=1;
+const RM=matchMedia("(prefers-reduced-motion: reduce)");
+const camPos=()=>{const v=ll2v(camLat,camLon);return V(v.x*camDist,v.y*camDist,v.z*camDist);};
+cv.addEventListener("pointerdown",e=>{drag=true;lx=e.clientX;ly=e.clientY;idle=0;
+ cv.classList.add("drag");cv.setPointerCapture(e.pointerId);hideHint();});
+cv.addEventListener("pointermove",e=>{if(!drag)return;
+ const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;
+ camLon-=dx*0.26;camLat=Math.max(-84,Math.min(84,camLat+dy*0.26));tgt=null;idle=0;});
+const endDrag=()=>{drag=false;cv.classList.remove("drag");};
+cv.addEventListener("pointerup",endDrag);cv.addEventListener("pointercancel",endDrag);
+cv.addEventListener("wheel",e=>{e.preventDefault();
+ camDist=Math.max(1.12,Math.min(7.5,camDist*(1+Math.sign(e.deltaY)*0.11)));tgt=null;idle=0;hideHint();},{passive:false});
+cv.addEventListener("touchstart",e=>{if(e.touches.length===2)
+ tpd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);},{passive:true});
+cv.addEventListener("touchmove",e=>{if(e.touches.length===2&&tpd){
+ const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+ camDist=Math.max(1.12,Math.min(7.5,camDist*tpd/d));tpd=d;tgt=null;idle=0;}},{passive:true});
+function flyTo(n,d){tgt={lat:n.lat,lon:n.lon,d:d||Math.min(camDist,2.2)};idle=0;}
+function project(v,mvp,w,h){const x=v.x,y=v.y,z=v.z;
+ const cx=mvp[0]*x+mvp[4]*y+mvp[8]*z+mvp[12],cy=mvp[1]*x+mvp[5]*y+mvp[9]*z+mvp[13],
+       cw=mvp[3]*x+mvp[7]*y+mvp[11]*z+mvp[15];
+ if(cw<=0.001)return null;
+ return {x:(cx/cw*0.5+0.5)*w,y:(1-(cy/cw*0.5+0.5))*h,w:cw};}
+
+/* ===================== time ===================== */
+const MAXAGE=300000,GAMMA=2.6;
+let NOW=0,PT=1,playing=false,speed=1.4,clock=0,TMODE=0,TWIN=1500;
+const p2age=p=>MAXAGE*Math.pow(1-p,GAMMA);
+const age2p=a=>1-Math.pow(Math.max(a,0)/MAXAGE,1/GAMMA);
+const EPOCHS=[[300000,"Middle Pleistocene"],[130000,"Last interglacial"],[115000,"Last glacial period"],
+ [71000,"Toba · MIS 4"],[57000,"Mid last-glacial"],[29000,"LGM approaching"],[19000,"Last Glacial Maximum"],
+ [14700,"Bølling–Allerød"],[12900,"Younger Dryas"],[11700,"Holocene"],[10000,"Neolithic"],
+ [5500,"Bronze Age"],[3200,"Iron Age"],[2000,"Classical antiquity"],[1000,"Medieval"],[500,"Early modern"],[0,"Present"]];
+function fmtAge(a){if(a<60)return"present";
+ const r=a>=20000?Math.round(a/500)*500:a>=2000?Math.round(a/100)*100:Math.round(a/10)*10;return fmtN(r);}
+function epochOf(a){let i=0;while(i+1<EPOCHS.length&&EPOCHS[i+1][0]>=a)i++;return EPOCHS[i][1];}
+</script>
+<script>
+"use strict";
+/* ===================== evidence layers ===================== */
+const LAYERS=[
+ {k:"genomes",name:"Ancient genomes",c:"#fb2189",size:4.2,r:1.010,
+  src:"AADR v66 · Poseidon aadr-archive",lic:"cite the AADR release DOI",
+  url:"https://doi.org/10.7910/DVN/FFIDCW",
+  cols:["poseidon_id","group_id","locality","polity","y_haplogroup","mt_haplogroup","publication","doi"],
+  classes:["radiocarbon dated","contextual date"],classOf:f=>(f&1)?0:1,
+  note:"Dated, georeferenced ancient individuals. <b>This is the evidence the arcs are inferred from.</b>"},
+ {k:"c14",name:"Radiocarbon dates",c:"#7d9e00",size:2.5,r:1.008,
+  src:"p3k14c (PEOPLE 3000)",lic:"see tDAR collection",url:"https://doi.org/10.48512/XCV8459173",
+  cols:["lab_id","site_name","country","continent","material","source_db"],
+  classes:["all dates"],classOf:()=>0,
+  note:"Date density is the standard proxy for population density. <b>An independent curve to test the genetic one against.</b>"},
+ {k:"places",name:"Ancient places",c:"#119fbe",size:3.0,r:1.006,
+  src:"Pleiades gazetteer v4.1",lic:"CC BY 3.0",url:"https://pleiades.stoa.org/downloads",
+  cols:["pleiades_id","title"],
+  classes:["settlement","sacred","military","funerary","infrastructure","other site"],classOf:f=>f&7,
+  note:"Classical world, c.1200 BCE–640 CE. Records flagged <b>rough</b> are drawn dimmer."},
+ {k:"routes",name:"Roads & routes",c:"#c91304",size:0,r:1.004,line:true,
+  src:"Ancient World Mapping Center · Barrington Atlas",lic:"ODbL 1.0",url:"https://github.com/AWMC/geodata",
+  cols:["name"],classes:["road","canal","aqueduct","wall"],classOf:f=>f&3,
+  note:"Roman-era linework. Segments marked <b>approximate</b> are drawn dashed-dim."},
+ {k:"lang",name:"Languages",c:"#6437ed",size:2.8,r:1.012,
+  src:"Glottolog (CLDF)",lic:"CC BY 4.0",url:"https://glottolog.org",
+  cols:["glottocode","name","macroarea","family_id","iso639p3"],
+  classes:["language","family","dialect"],classOf:f=>Math.min(2,f),
+  note:"Present-day and recently attested locations. <b>Not ancient positions</b> — languages moved too."},
+ {k:"soc",name:"Documented societies",c:"#b307a4",size:4.0,r:1.014,
+  src:"D-PLACE · Ethnographic Atlas",lic:"CC BY 4.0",url:"https://d-place.org",
+  cols:["society_id","name","glottocode","focal_year"],classes:["society"],classOf:()=>0,
+  note:"Ethnographic societies with a focal documentation year."},
+ {k:"patho",name:"Ancient metagenomes",c:"#00764f",size:4.0,r:1.016,
+  src:"AncientMetagenomeDir (SPAAM)",lic:"CC BY 4.0",
+  url:"https://github.com/SPAAM-community/AncientMetagenomeDir",
+  cols:["sample","site","location","type","project","doi"],
+  classes:["host-associated","environmental","single-genome"],classOf:f=>Math.min(2,f),
+  note:"Ancient pathogens and microbiomes. Pathogens travel with people — <b>an independent tracer of contact</b>."}
+];
+const LBY={}; LAYERS.forEach(l=>{LBY[l.k]=l; l.on=false; l.ready=false; l.off=new Set(); l.txt=null; l.txtBusy=false;});
+
+const pPoint=prog(
+`attribute vec3 aP;attribute float aBP;attribute float aOn;
+ uniform mat4 uMVP;uniform vec3 uCam;uniform float uPX,uNow,uMode,uWin,uAlpha,uSize;
+ uniform vec2 uRange;
+ varying float vA;
+ void main(){
+   vec3 n=normalize(aP);
+   float face=smoothstep(-0.02,0.26,dot(n,normalize(uCam-aP)));
+   float t;
+   if(aBP<=0.5) t=1.0;
+   else if(uMode<0.5) t=clamp((aBP-uNow)/max(aBP*0.02,200.0),0.0,1.0);
+   else t=1.0-smoothstep(uWin*0.55,uWin,abs(aBP-uNow));
+   float inr=(aBP<=0.5)?1.0:step(uRange.x,aBP)*step(aBP,uRange.y);
+   vA=aOn*face*t*uAlpha*inr;
+   vec4 mv=uMVP*vec4(aP,1.0);gl_Position=mv;
+   gl_PointSize=max(1.0,(uSize*uPX)/max(mv.w,0.35));}`,
+`precision mediump float;varying float vA;uniform vec3 uCol;
+ void main(){if(vA<=0.004)discard;
+  vec2 d=gl_PointCoord-0.5;float r=length(d)*2.0;if(r>1.0)discard;
+  float core=1.0-smoothstep(0.0,1.0,r);
+  gl_FragColor=vec4(uCol,core*core*vA);}`);
+
+const pLine=prog(
+`attribute vec3 aP;attribute float aOn;uniform mat4 uMVP;uniform vec3 uCam;uniform float uAlpha;
+ varying float vA;
+ void main(){vec3 n=normalize(aP);
+  float face=smoothstep(-0.02,0.26,dot(n,normalize(uCam-aP)));
+  vA=aOn*face*uAlpha;gl_Position=uMVP*vec4(aP,1.0);}`,
+`precision mediump float;varying float vA;uniform vec3 uCol;
+ void main(){if(vA<=0.004)discard;gl_FragColor=vec4(uCol,vA*0.62);}`);
+
+const REC=15;
+function parsePoints(ab,L){
+  const dv=new DataView(ab),n=(ab.byteLength/REC)|0;
+  const pos=new Float32Array(n*3),lat=new Float32Array(n),lon=new Float32Array(n),
+        bp=new Float32Array(n),unc=new Float32Array(n),fl=new Uint8Array(n),on=new Float32Array(n);
+  for(let i=0;i<n;i++){
+    const o=i*REC;
+    const la=dv.getInt32(o,true)/1e5, lo=dv.getInt32(o+4,true)/1e5;
+    lat[i]=la;lon[i]=lo;bp[i]=dv.getInt32(o+8,true);unc[i]=dv.getUint16(o+12,true);fl[i]=dv.getUint8(o+14);
+    on[i]=1;
+    const v=ll2v(la,lo);pos[i*3]=v.x*L.r;pos[i*3+1]=v.y*L.r;pos[i*3+2]=v.z*L.r;
+  }
+  return {n,pos,lat,lon,bp,unc,fl,on};
+}
+function parseLines(ab,L){
+  const dv=new DataView(ab);let o=0;
+  const nL=dv.getUint32(o,true);o+=4;
+  const verts=[],on=[],meta=[];
+  for(let i=0;i<nL;i++){
+    const n=dv.getUint16(o,true),cls=dv.getUint8(o+2),known=dv.getUint8(o+3);o+=4;
+    const pts=[];
+    for(let j=0;j<n;j++){const la=dv.getInt32(o,true)/1e5,lo=dv.getInt32(o+4,true)/1e5;o+=8;pts.push(ll2v(la,lo));}
+    meta.push({cls,known,i0:verts.length/3,n});
+    for(let j=0;j<n-1;j++){
+      for(const p of [pts[j],pts[j+1]]){verts.push(p.x*L.r,p.y*L.r,p.z*L.r);on.push(known?1:0.42);}
+    }
+  }
+  return {nL,meta,pos:new Float32Array(verts),on:new Float32Array(on),n:on.length};
+}
+
+async function loadLayer(L){
+  if(L.ready||L.loading)return;
+  L.loading=true; paintLayers();
+  try{
+    const b64=await (await fetch("d/"+L.k+".bin.txt")).text();
+    const bs=atob(b64.trim()),u8=new Uint8Array(bs.length);
+    for(let i=0;i<bs.length;i++)u8[i]=bs.charCodeAt(i);
+    const ab=u8.buffer;
+    const d=L.line?parseLines(ab,L):parsePoints(ab,L);
+    Object.assign(L,d);
+    L.bufP=buf(L.pos);
+    L.bufOn=dynbuf(L.on);
+    if(!L.line)L.bufBP=buf(L.bp);
+    L.ready=true;
+  }catch(e){ L.err=String(e&&e.message||e); }
+  L.loading=false; paintLayers(); buildCoverage();
+}
+async function loadText(L){
+  if(L.txt||L.txtBusy)return L.txt;
+  L.txtBusy=true;
+  try{ L.txt=(await (await fetch("d/"+L.k+".txt")).text()).split("\n"); }
+  catch(e){ L.txtErr=String(e&&e.message||e); }
+  L.txtBusy=false; return L.txt;
+}
+function rowOf(L,i){
+  if(!L.txt||i>=L.txt.length)return null;
+  const parts=L.txt[i].split("\t"),o={};
+  L.cols.forEach((c,j)=>o[c]=parts[j]||"");
+  return o;
+}
+function fullTree(mark){
+  const raw=TREES["tree_"+mark];
+  if(!raw)return null;
+  if(!raw._par){
+    const m={};raw.forEach((d,i)=>m[d.id]=i);
+    const par=new Int32Array(raw.length).fill(-1);
+    raw.forEach((d,i)=>{par[i]=(d.parent!=null&&m[d.parent]!==undefined)?m[d.parent]:-1;});
+    raw._idx=m;raw._par=par;
+  }
+  return raw;
+}
+function carrierTest(){
+  // returns (genomeIndex)->bool for "descends from, or is, the selected clade"
+  if(!LINFILTER||!SELN)return null;
+  const raw=fullTree(MARK); if(!raw)return null;
+  const anc=raw._idx[SELN.id]; if(anc===undefined)return null;
+  const par=raw._par,hap=HAP[MARK];
+  if(!hap)return null;
+  return i=>{let c=hap[i];let g=0;
+    while(c>=0&&g++<80){if(c===anc)return true;c=par[c];}
+    return false;};
+}
+function refreshLayerOn(L){
+  if(!L.ready||L.line)return;
+  const carrier=(L.k==="genomes")?carrierTest():null;
+  const q=(L.k==="genomes")&&QOFF.size?QOFF:null;
+  for(let i=0;i<L.n;i++){
+    let v=L.off.has(L.classOf(L.fl[i]))?0:1;
+    if(v&&q&&q.has((L.fl[i]>>1)&3))v=0;
+    if(v&&carrier&&!carrier(i))v=0;
+    L.on[i]=v;
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER,L.bufOn);gl.bufferSubData(gl.ARRAY_BUFFER,0,L.on);
+}
+function refreshAllLayers(){for(const L of LAYERS)if(L.ready)L.line?refreshLineOn(L):refreshLayerOn(L);}
+function refreshLineOn(L){
+  if(!L.ready||!L.line)return;
+  for(const m of L.meta){
+    const v=L.off.has(m.cls)?0:(m.known?1:0.42);
+    const start=m.i0, cnt=(m.n-1)*2;
+    for(let j=0;j<cnt;j++)L.on[start+j]=v;
+  }
+  gl.bindBuffer(gl.ARRAY_BUFFER,L.bufOn);gl.bufferSubData(gl.ARRAY_BUFFER,0,L.on);
+}
+function drawLayers(mvp,cam,PX){
+  for(const L of LAYERS){
+    if(!L.on||!L.ready)continue;
+    if(L.line){
+      useProg(pLine);
+      gl.uniformMatrix4fv(pLine.u("uMVP"),false,mvp);
+      gl.uniform3f(pLine.u("uCam"),cam.x,cam.y,cam.z);
+      gl.uniform3fv(pLine.u("uCol"),hex2rgb(L.c));
+      gl.uniform1f(pLine.u("uAlpha"),SELN?0.42:1.0);
+      bind(pLine,"aP",L.bufP,3);bind(pLine,"aOn",L.bufOn,1);
+      gl.drawArrays(gl.LINES,0,L.n);
+    }else{
+      useProg(pPoint);
+      gl.uniformMatrix4fv(pPoint.u("uMVP"),false,mvp);
+      gl.uniform3f(pPoint.u("uCam"),cam.x,cam.y,cam.z);
+      gl.uniform3fv(pPoint.u("uCol"),hex2rgb(L.c));
+      gl.uniform1f(pPoint.u("uPX"),PX);gl.uniform1f(pPoint.u("uNow"),NOW);
+      gl.uniform1f(pPoint.u("uMode"),TMODE);gl.uniform1f(pPoint.u("uWin"),TWIN);
+      gl.uniform1f(pPoint.u("uSize"),L.size);gl.uniform1f(pPoint.u("uAlpha"),SELN?0.40:1.0);
+      gl.uniform2f(pPoint.u("uRange"),RANGE[0],RANGE[1]);
+      bind(pPoint,"aP",L.bufP,3);bind(pPoint,"aBP",L.bufBP,1);bind(pPoint,"aOn",L.bufOn,1);
+      gl.drawArrays(gl.POINTS,0,L.n);
+    }
+  }
+}
+function visibleAt(L,i){
+  const b=L.bp[i];
+  if(b<=0.5)return true;
+  if(b<RANGE[0]||b>RANGE[1])return false;
+  return TMODE<0.5 ? (b>=NOW) : (Math.abs(b-NOW)<=TWIN);
+}
+function pickRecord(mx,my,w,h){
+  let best=null,bd=12;
+  for(const L of LAYERS){
+    if(!L.on||!L.ready||L.line)continue;
+    for(let i=0;i<L.n;i++){
+      if(L.off.has(L.classOf(L.fl[i])))continue;
+      if(!visibleAt(L,i))continue;
+      const o=i*3,v={x:L.pos[o],y:L.pos[o+1],z:L.pos[o+2]};
+      if(dot3(norm(v),norm(sub(lastCam,v)))<0.02)continue;
+      const s=project(v,lastMVP,w,h);if(!s)continue;
+      const d=Math.hypot(s.x-mx,s.y-my);
+      if(d<bd){bd=d;best={L,i};}
+    }
+  }
+  return best;
+}
+</script>
+<script>
+"use strict";
+/* ===================== lineage tree ===================== */
+const GRP={
+ y:[{c:"#896c05",n:"A · B — deepest African"},{c:"#45a903",n:"E — African & Mediterranean"},
+    {c:"#0b9dcb",n:"C · D · H — early Asian"},{c:"#817afe",n:"I — European hunter-gatherer"},
+    {c:"#b4065f",n:"G · J — Near East & farmers"},{c:"#a102b9",n:"N · O — East Asian"},
+    {c:"#fe0191",n:"Q — Siberia & the Americas"},{c:"#0c49fe",n:"R — steppe & Indo-European"}],
+ mt:[{c:"#896c05",n:"L0 · L1 · L5 — deepest African"},{c:"#45a903",n:"L2 · L3 — expansion & exit"},
+    {c:"#0b9dcb",n:"M — southern route"},{c:"#817afe",n:"N — northern route & Sahul"},
+    {c:"#b4065f",n:"R — western Eurasian stem"},{c:"#a102b9",n:"U · K — European foragers"},
+    {c:"#fe0191",n:"H · V · J · T — Neolithic Europe"},{c:"#0c49fe",n:"A · B · C · D · F — E Asia & Americas"}]};
+const STEM="#5A6480";
+function grpOfY(id){const a=id[0];
+ if(a==="A"||a==="B")return 0; if(a==="E")return 1;
+ if(a==="C"||a==="D"||a==="H")return 2; if(a==="I")return 3;
+ if(a==="G"||a==="J")return 4; if(a==="N"||a==="O")return 5;
+ if(a==="Q")return 6; if(a==="R")return 7; return -1;}
+function grpOfMt(id){
+ if(id[0]==="L"){const d=id[1]; return (d==="0"||d==="1"||d==="5"||d===undefined)?0:1;}
+ const a=id[0];
+ if(a==="M")return 2; if(a==="N")return 3;
+ if(id.startsWith("HV")||a==="H"||a==="V"||a==="J"||a==="T")return 6;
+ if(a==="R")return 4; if(a==="U"||a==="K")return 5;
+ if("ABCDFGYZ".includes(a))return 7; return -1;}
+
+let MARK="y",SRC="obs",POSMODE="c",TREE=null,NODES=[],EDGES=[],ARC=null,SELN=null;
+const DETAIL=[60,14,1];let DLEV=0;
+let RANGE=[0,300000];           // hard date filter, years BP
+let LINFILTER=false;            // restrict evidence to carriers of the selected clade
+let QOFF=new Set();             // AADR assessment levels switched off
+let HAP={y:null,mt:null};       // genome index -> deepest clade index in the FULL tree
+let PATHFLY=null;               // declared here, not in the last script block: frame() reads it
+                                // and the first rAF can fire before that block has executed
+const TREES={};
+async function getTree(mark,src){
+  const key=(src==="obs"?"tree_":"tree_ref_")+mark;
+  if(TREES[key])return TREES[key];
+  try{ TREES[key]=await (await fetch("d/"+key+".json")).json(); }
+  catch(e){ TREES[key]=[]; }
+  return TREES[key];
+}
+const ARCP=48;
+async function buildTree(){
+  let raw=await getTree(MARK,SRC);
+  if(SRC==="obs"){const t=DETAIL[DLEV];raw=raw.filter(d=>(d.n||0)>=t);}
+  const grpOf=MARK==="y"?grpOfY:grpOfMt;
+  const byId={};
+  NODES=raw.map((d,i)=>{
+    const g=(d.grp!==undefined&&d.grp!==null)?d.grp:grpOf(d.id);
+    const o={...d,idx:i,kids:[],gidx:g,col:g>=0?GRP[MARK][g].c:STEM};
+    byId[d.id]=o;return o;});
+  NODES.forEach((n,i)=>{const pk=raw[i].parent; n.parent=(pk&&byId[pk])?byId[pk]:null; if(n.parent)n.parent.kids.push(n);});
+  const cnt=n=>{n.desc=n.kids.reduce((s,k)=>s+cnt(k),0)+1;return n.desc;};
+  NODES.filter(n=>!n.parent).forEach(cnt);
+  NODES.forEach(n=>{n.lat=POSMODE==="c"?n.clat:n.olat; n.lon=POSMODE==="c"?n.clon:n.olon; n.v=ll2v(n.lat,n.lon);});
+  EDGES=NODES.filter(n=>n.parent);
+  const NV=EDGES.length*ARCP;
+  const P=new Float32Array(NV*3),S=new Float32Array(NV),A=new Float32Array(NV*2),
+        C=new Float32Array(NV*3),D=new Float32Array(NV*2);
+  const LP=[],LS=[],LA=[],LC=[],LD=[];
+  EDGES.forEach((e,ei)=>{
+    const a=e.parent.v,b=e.v;
+    const ang=Math.acos(Math.max(-1,Math.min(1,dot3(a,b))));
+    const lift=0.02+0.26*(ang/Math.PI);
+    const rgb=hex2rgb(e.col);
+    let pa=e.parent.bp, pb=e.bp; if(pb>=pa)pb=pa-50;
+    const pts=[];
+    for(let i=0;i<ARCP;i++){
+      const s=i/(ARCP-1),k=ei*ARCP+i;
+      const m=slerp(a,b,s),h=1.004+lift*Math.sin(Math.PI*s);
+      const x=m.x*h,y=m.y*h,z=m.z*h;
+      P[k*3]=x;P[k*3+1]=y;P[k*3+2]=z;S[k]=s;A[k*2]=pa;A[k*2+1]=pb;
+      C[k*3]=rgb[0];C[k*3+1]=rgb[1];C[k*3+2]=rgb[2];D[k*2]=1;D[k*2+1]=1;
+      pts.push([x,y,z,s]);
+    }
+    for(let i=0;i<ARCP-1;i++)for(const q of [pts[i],pts[i+1]]){
+      LP.push(q[0],q[1],q[2]);LS.push(q[3]);LA.push(pa,pb);LC.push(rgb[0],rgb[1],rgb[2]);LD.push(1,1);}
+    e.vs=ei*ARCP; e.li=ei*(ARCP-1)*2;
+  });
+  ARC={n:NV,P:buf(P),S:buf(S),A:buf(A),C:buf(C),D:dynbuf(D),Dcpu:D,
+       ln:LS.length,LP:buf(new Float32Array(LP)),LS:buf(new Float32Array(LS)),
+       LA:buf(new Float32Array(LA)),LC:buf(new Float32Array(LC)),
+       LD:dynbuf(new Float32Array(LD)),LDcpu:new Float32Array(LD)};
+  refreshDyn();
+}
+function ancestry(n){const o=[];let c=n;while(c){o.unshift(c);c=c.parent;}return o;}
+let GOFF=new Set();
+function refreshDyn(){
+  if(!ARC)return;
+  const path=SELN?new Set(ancestry(SELN).map(n=>n.id)):null;
+  EDGES.forEach((e,ei)=>{
+    const on=!path?1:(path.has(e.id)?1:0.10);
+    const vis=(e.gidx<0||!GOFF.has(e.gidx))?1:0;
+    for(let i=0;i<ARCP;i++){const k=(ei*ARCP+i)*2;ARC.Dcpu[k]=on;ARC.Dcpu[k+1]=vis;}
+    const c0=e.li;
+    for(let i=0;i<(ARCP-1)*2;i++){const k=(c0+i)*2;ARC.LDcpu[k]=on;ARC.LDcpu[k+1]=vis;}
+  });
+  gl.bindBuffer(gl.ARRAY_BUFFER,ARC.D);gl.bufferSubData(gl.ARRAY_BUFFER,0,ARC.Dcpu);
+  gl.bindBuffer(gl.ARRAY_BUFFER,ARC.LD);gl.bufferSubData(gl.ARRAY_BUFFER,0,ARC.LDcpu);
+}
+const pArc=prog(
+`attribute vec3 aP;attribute float aS;attribute vec2 aAge;attribute vec3 aCol;attribute vec2 aDyn;
+ uniform mat4 uMVP;uniform vec3 uCam;uniform float uNow,uPX;
+ varying vec3 vCol;varying float vA,vS,vFrac,vSel;
+ void main(){
+   float p=aAge.x,c=aAge.y;
+   float frac=clamp((p-uNow)/max(p-c,1.0),0.0,1.0);
+   vec3 n=normalize(aP);
+   float face=smoothstep(-0.28,0.14,dot(n,normalize(uCam-aP)));
+   vSel=aDyn.x; vA=aDyn.y*face*aDyn.x*step(aS,frac);
+   vCol=aCol;vS=aS;vFrac=frac;
+   gl_Position=uMVP*vec4(aP,1.0);
+   gl_PointSize=max(1.0,(3.4*uPX)/max(gl_Position.w,0.4));}`,
+`precision mediump float;varying vec3 vCol;varying float vA,vS,vFrac,vSel;
+ uniform float uT,uMode;
+ void main(){
+   if(vA<=0.004)discard;
+   float a=vA;
+   if(uMode>0.5){vec2 d=gl_PointCoord-0.5;float r=length(d)*2.0;if(r>1.0)discard;
+     a*=smoothstep(0.80,1.0,fract(vS*9.0-uT*0.5))*(1.0-r*r)*1.9;}
+   else{a*=0.30*(1.0+2.0*vSel);float d=abs(vFrac-vS);a+=exp(-d*d*2400.0)*1.5*vSel;}
+   gl_FragColor=vec4(vCol*(0.82+0.55*a),a);}`);
+function drawTree(mvp,cam,PX){
+  if(!ARC)return;
+  useProg(pArc);
+  gl.uniformMatrix4fv(pArc.u("uMVP"),false,mvp);
+  gl.uniform3f(pArc.u("uCam"),cam.x,cam.y,cam.z);
+  gl.uniform1f(pArc.u("uNow"),NOW);gl.uniform1f(pArc.u("uT"),clock);gl.uniform1f(pArc.u("uPX"),PX);
+  gl.uniform1f(pArc.u("uMode"),0);
+  bind(pArc,"aP",ARC.LP,3);bind(pArc,"aS",ARC.LS,1);bind(pArc,"aAge",ARC.LA,2);
+  bind(pArc,"aCol",ARC.LC,3);bind(pArc,"aDyn",ARC.LD,2);
+  gl.drawArrays(gl.LINES,0,ARC.ln);
+  gl.uniform1f(pArc.u("uMode"),1);
+  bind(pArc,"aP",ARC.P,3);bind(pArc,"aS",ARC.S,1);bind(pArc,"aAge",ARC.A,2);
+  bind(pArc,"aCol",ARC.C,3);bind(pArc,"aDyn",ARC.D,2);
+  gl.drawArrays(gl.POINTS,0,ARC.n);
+}
+</script>
+<script>
+"use strict";
+/* ===================== tabs ===================== */
+const TABS=["layers","inspect","query","cover"];
+function showTab(t){TABS.forEach(x=>{$("tab-"+x).setAttribute("aria-selected",String(x===t));
+  $("pane-"+x).hidden=(x!==t);});if(t==="cover")drawCoverage();}
+TABS.forEach(t=>$("tab-"+t).onclick=()=>showTab(t));
+
+/* ===================== time ===================== */
+const scrub=$("scrub");
+function setTime(p,fromSlider){
+  PT=Math.max(0,Math.min(1,p));NOW=p2age(PT);
+  if(!fromSlider)scrub.value=Math.round(PT*1000);
+  const a=fmtAge(NOW);
+  $("year").innerHTML=a==="present"?'present <em>day</em>':a+' <em>BP</em>';
+  $("epoch").textContent=NOW<60?"":epochOf(NOW);
+}
+scrub.addEventListener("input",()=>{playing=false;paintPlay();setTime(+scrub.value/1000,true);hideHint();});
+(function(){const marks=[300000,100000,60000,30000,12000,5000,0];
+ $("ticks").innerHTML=marks.map(m=>{const pc=(age2p(m)*100).toFixed(2);
+  const l=m===0?"now":m>=1000?(m/1000)+"k":m;return `<i style="left:${pc}%"><b>${l}</b></i>`;}).join("");})();
+function paintPlay(){const b=$("play");b.setAttribute("aria-pressed",String(playing));
+ b.textContent=playing?"❚❚ pause":"▶ play";}
+$("play").onclick=()=>{if(!playing&&PT>=0.999)setTime(0);playing=!playing;paintPlay();hideHint();};
+$("rewind").onclick=()=>{setTime(0);playing=false;paintPlay();};
+$("speed").onchange=e=>{speed=+e.target.value;};
+$("tmode").onclick=e=>{TMODE=TMODE?0:1;e.target.setAttribute("aria-pressed",String(!!TMODE));
+ e.target.textContent=TMODE?"window ±1.5k":"accumulate";};
+let hintGone=false;
+function hideHint(){if(hintGone)return;hintGone=true;$("hint").classList.add("gone");}
+setTimeout(hideHint,10000);
+
+/* ===================== tree controls ===================== */
+async function reTree(){
+  SELN=null; await buildTree(); paintLegend(); paintDossier(); paintQuery(); paintTreeNote();
+  $("hdrmode").textContent=(MARK==="y"?"Y-chromosome":"Mitochondrial")+" · "+(SRC==="obs"?"observed":"reference");
+}
+function segset(a,b,on){$(a).setAttribute("aria-pressed",String(on));$(b).setAttribute("aria-pressed",String(!on));}
+$("mY").onclick=()=>{MARK="y";segset("mY","mM",true);reTree();};
+$("mM").onclick=()=>{MARK="mt";segset("mY","mM",false);reTree();};
+$("srcObs").onclick=()=>{SRC="obs";segset("srcObs","srcRef",true);reTree();};
+$("srcRef").onclick=()=>{SRC="ref";segset("srcObs","srcRef",false);reTree();};
+$("posC").onclick=()=>{POSMODE="c";segset("posC","posO",true);reTree();};
+$("posO").onclick=()=>{POSMODE="o";segset("posC","posO",false);reTree();};
+[0,1,2].forEach(i=>$("dt"+i).onclick=()=>{DLEV=i;[0,1,2].forEach(j=>$("dt"+j).setAttribute("aria-pressed",String(j===i)));reTree();});
+function paintTreeNote(){
+  const roots=NODES.filter(n=>!n.parent).length;
+  $("treenote").innerHTML=SRC==="obs"
+   ? `<p class="note"><b>${fmtN(NODES.length)} clades</b> (of ${fmtN((TREES["tree_"+MARK]||[]).length)}, showing those with ≥${DETAIL[DLEV]} sampled members) derived from the haplogroup calls of
+      ${fmtN(AADRN)} dated ancient individuals. A node's date is its <b>oldest observed member</b>,
+      not a TMRCA — the real clade is always older than its oldest sampled carrier. Position is the
+      ${POSMODE==="c"?"spherical centroid of all members":"location of that oldest member"}.
+      ${roots>1?`The ${roots} roots are unconnected because the AADR's nomenclature does not encode the deep
+      backbone above them, and no sampled individual bridges them.`:""}</p>`
+   : `<p class="note"><b>Reference backbone.</b> Hand-entered published clade ages and approximate origin
+      regions — the textbook tree, not observed data. Useful for the deep structure the sampled record
+      cannot reach. Positions are illustrative.</p>`;
+}
+function paintLegend(){
+  const gs=GRP[MARK];
+  const counts=gs.map((g,i)=>NODES.filter(n=>n.gidx===i).length);
+  $("legend").innerHTML=gs.map((g,i)=>
+   `<button class="lg" data-g="${i}" data-off="${GOFF.has(i)}" aria-pressed="${!GOFF.has(i)}">
+      <span class="sw" style="background:${g.c};color:${g.c}"></span>
+      <span class="nm">${g.n}</span><span class="ct">${counts[i]}</span></button>`).join("");
+  $("legend").querySelectorAll(".lg").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.g;GOFF.has(i)?GOFF.delete(i):GOFF.add(i);
+    if(SELN&&SELN.gidx===i&&GOFF.has(i))selectNode(null);else{paintLegend();refreshDyn();}});
+}
+
+/* ===================== layers panel ===================== */
+function paintLayers(){
+  $("layers").innerHTML=LAYERS.map(L=>{
+    const st=L.loading?"loading…":L.err?"failed":L.ready?fmtN(L.line?L.nL:L.n):"—";
+    const sub=L.ready&&!L.line?L.classes.map((c,i)=>
+      `<button class="lg" data-l="${L.k}" data-c="${i}" data-off="${L.off.has(i)}" aria-pressed="${!L.off.has(i)}">
+         <span class="sw" style="background:${L.c};color:${L.c};opacity:.75"></span>
+         <span class="nm">${c}</span><span class="ct">${fmtN(countClass(L,i))}</span></button>`).join("")
+      :L.ready&&L.line?L.classes.map((c,i)=>
+      `<button class="lg" data-l="${L.k}" data-c="${i}" data-off="${L.off.has(i)}" aria-pressed="${!L.off.has(i)}">
+         <span class="sw" style="background:${L.c};color:${L.c};opacity:.75"></span>
+         <span class="nm">${c}</span></button>`).join(""):"";
+    return `<button class="lg" data-master="${L.k}" data-off="${!L.on}" data-busy="${!!L.loading}" aria-pressed="${L.on}">
+      <span class="sw" style="background:${L.c};color:${L.c}"></span>
+      <span class="nm">${L.name}<span class="src">${L.src}</span></span>
+      <span class="ct">${st}</span></button>
+      ${L.on&&sub?`<div class="sublist">${sub}</div>`:""}`;
+  }).join("");
+  $("layers").querySelectorAll("[data-master]").forEach(b=>b.onclick=async()=>{
+    const L=LBY[b.dataset.master];L.on=!L.on;paintLayers();
+    if(L.on&&!L.ready)await loadLayer(L);
+    paintQuery();});
+  $("layers").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{
+    const L=LBY[b.dataset.l],i=+b.dataset.c;
+    L.off.has(i)?L.off.delete(i):L.off.add(i);
+    L.line?refreshLineOn(L):refreshLayerOn(L);paintLayers();paintQuery();});
+}
+const _cc={};
+function countClass(L,i){const k=L.k+":"+i;if(_cc[k]!==undefined)return _cc[k];
+ let n=0;for(let j=0;j<L.n;j++)if(L.classOf(L.fl[j])===i)n++;return _cc[k]=n;}
+function paintProv(){
+  $("prov").innerHTML=
+   `<p class="note"><b>The points are evidence. The arcs are inference.</b> Every point is a real
+    record from a published dataset; the arcs between clades are reconstructed from those records,
+    not observed. A clade's position is a summary statistic of where its carriers were dug up —
+    which is not the same as where it arose.</p>`+
+   LAYERS.map(L=>`<p class="note" style="border-left-color:${L.c}33">
+     <b>${L.name}</b> — ${L.src}. ${L.lic}. ${L.note}
+     <a href="${L.url}" target="_blank" rel="noopener">source</a></p>`).join("")+
+   `<p class="note">Land outlines: Natural Earth 110m (public domain), 48,000 uniform points.</p>`;
+}
+
+/* ===================== selection & inspectors ===================== */
+let SELREC=null;
+function selectNode(n){SELN=n;SELREC=null;refreshDyn();paintDossier();paintRec();paintQuery();
+  if(n){flyTo(n);showTab("inspect");}}
+function selectRec(hit){SELREC=hit;paintRec();paintQuery();
+  if(hit){flyTo({lat:hit.L.lat[hit.i],lon:hit.L.lon[hit.i]});showTab("inspect");loadText(hit.L).then(paintRec);}}
+function paintDossier(){
+  const d=$("dossier");
+  if(!SELN){d.innerHTML=`<div class="db"><p style="color:var(--ink3)">Click a lineage arc to trace it
+    back to its root, or a coloured point to inspect a record.</p>
+    <dl class="kv"><dt>Clades</dt><dd>${fmtN(NODES.length)}</dd>
+    <dt>Branches</dt><dd>${fmtN(EDGES.length)}</dd></dl></div>`;return;}
+  const n=SELN,chain=ancestry(n),g=n.gidx>=0?GRP[MARK][n.gidx]:null;
+  d.innerHTML=`<div class="dh"><span class="code" style="color:${n.col}">${esc(n.title||n.id)}</span>
+    <span class="age">${fmtAge(n.bp)} BP</span></div>
+   <div class="db">
+     ${n.blurb?`<p>${esc(n.blurb)}</p>`:""}
+     <dl class="kv">
+       <dt>Group</dt><dd>${g?g.n:"unassigned"}</dd>
+       ${n.n?`<dt>Members</dt><dd>${fmtN(n.n)} sampled individuals</dd>`:""}
+       <dt>${SRC==="obs"?"Oldest member":"Published age"}</dt><dd>${fmtAge(n.bp)} BP${n.ogrp?" · "+esc(n.ogrp):""}</dd>
+       <dt>Position</dt><dd>${n.lat.toFixed(2)}, ${n.lon.toFixed(2)} (${POSMODE==="c"?"centroid":"oldest"})</dd>
+       ${n.oid?`<dt>Oldest ID</dt><dd>${esc(n.oid)}</dd>`:""}
+     </dl>
+     <div class="chain">${chain.map((c,i)=>(i?'<i>›</i>':'')+
+       `<span data-n="${c.idx}">${esc(c.id)}</span>`).join("")}</div>
+   </div>`;
+  d.querySelectorAll(".chain span").forEach(s=>s.onclick=()=>selectNode(NODES[+s.dataset.n]));
+}
+function paintRec(){
+  const el=$("recins");
+  if(!SELREC){el.innerHTML=`<div class="db"><p style="color:var(--ink3)">No record selected. Turn on an
+    evidence layer and click a point.</p></div>`;return;}
+  const {L,i}=SELREC, r=rowOf(L,i);
+  const bp=L.bp[i],unc=L.unc[i];
+  const doi=r&&(r.doi||"");
+  el.innerHTML=`<div class="dh"><span class="code" style="color:${L.c};font-size:17px">${esc((r&&(r[L.cols[1]]||r[L.cols[0]]))||L.name)}</span>
+     <span class="age">${bp>0?fmtAge(bp)+" BP":"undated"}</span></div>
+   <div class="db"><dl class="kv">
+     <dt>Layer</dt><dd>${L.name}</dd>
+     <dt>Class</dt><dd>${L.classes[L.classOf(L.fl[i])]||"—"}</dd>
+     <dt>Position</dt><dd>${L.lat[i].toFixed(5)}, ${L.lon[i].toFixed(5)}</dd>
+     ${unc?`<dt>Date ±</dt><dd>${fmtN(unc)} yr</dd>`:""}
+     ${r?L.cols.slice(0,7).map(c=>r[c]?`<dt>${c.replace(/_/g," ")}</dt><dd>${esc(r[c])}</dd>`:"").join(""):
+        `<dt>Detail</dt><dd>${L.txtBusy?"loading…":"—"}</dd>`}
+     ${doi?`<dt>DOI</dt><dd><a href="${/^https?:/.test(doi)?doi:"https://doi.org/"+doi}" target="_blank" rel="noopener">${esc(doi)}</a></dd>`:""}
+     ${L.k==="places"&&r?`<dt>Record</dt><dd><a href="https://pleiades.stoa.org/places/${esc(r.pleiades_id)}" target="_blank" rel="noopener">pleiades.stoa.org/places/${esc(r.pleiades_id)}</a></dd>`:""}
+   </dl>
+   ${L.k==="places"&&(L.fl[i]&8)?`<p class="note warn">Gazetteer flags this position <b>rough</b>.</p>`:""}
+   </div>`;
+}
+
+/* ===================== cross-layer query ===================== */
+let QKM=500;
+function queryAt(lat,lon,km){
+  const res=[];
+  for(const L of LAYERS){
+    if(!L.ready||L.line)continue;
+    const hits=[];
+    for(let i=0;i<L.n;i++){
+      if(L.off.has(L.classOf(L.fl[i])))continue;
+      if(!visibleAt(L,i))continue;
+      const d=haversine(lat,lon,L.lat[i],L.lon[i]);
+      if(d<=km)hits.push({i,d});
+    }
+    if(hits.length){hits.sort((a,b)=>a.d-b.d);res.push({L,hits});}
+  }
+  return res;
+}
+function paintQuery(){
+  const el=$("query");
+  const anchor=SELREC?{lat:SELREC.L.lat[SELREC.i],lon:SELREC.L.lon[SELREC.i],
+                       name:(rowOf(SELREC.L,SELREC.i)||{})[SELREC.L.cols[1]]||SELREC.L.name}
+            :SELN?{lat:SELN.lat,lon:SELN.lon,name:SELN.title||SELN.id}:null;
+  if(!anchor){el.innerHTML=`<p class="note">Select a clade or a record to search every loaded layer
+    around it. Results carry their citations and export as CSV.</p>`;return;}
+  const on=LAYERS.filter(L=>L.ready&&!L.line);
+  if(!on.length){el.innerHTML=`<p class="note">No point layers loaded yet — turn one on in <b>layers</b>.</p>`;return;}
+  const res=queryAt(anchor.lat,anchor.lon,QKM);
+  const total=res.reduce((s,r)=>s+r.hits.length,0);
+  el.innerHTML=
+   `<div class="qhead"><span class="qn">${fmtN(total)}</span><span class="qt">records within</span>
+     <select class="btn" id="qkm">${[50,100,250,500,1000,2000].map(k=>
+       `<option value="${k}"${k===QKM?" selected":""}>${k} km</option>`).join("")}</select></div>
+    <p class="note" style="margin:0">of <b>${esc(anchor.name)}</b>
+      (${anchor.lat.toFixed(2)}, ${anchor.lon.toFixed(2)}), at
+      ${TMODE?`±${fmtN(TWIN)} yr around ${fmtAge(NOW)} BP`:`${fmtAge(NOW)} BP and earlier`}.</p>
+    <div style="margin-top:8px">${res.map(r=>
+      `<div class="qrow"><span class="sw" style="background:${r.L.c}"></span>
+        <span>${r.L.name}</span><span class="n">${fmtN(r.hits.length)}</span></div>`).join("")||
+      '<p class="note">Nothing in range at this date.</p>'}</div>
+    ${total?`<div class="tbtns" style="margin-top:9px">
+      <button class="btn" id="qcopy">copy CSV</button>
+      <button class="btn" id="qshow">show table</button></div>
+      <textarea id="qout" hidden readonly spellcheck="false"></textarea>`:""}`;
+  const sel=$("qkm");if(sel)sel.onchange=e=>{QKM=+e.target.value;paintQuery();};
+  if(!total)return;
+  const build=async()=>{
+    for(const r of res)await loadText(r.L);
+    const head="layer,source,license,record_id,name,latitude,longitude,years_bp,date_err,class,distance_km,reference";
+    const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
+    const lines=[head];
+    for(const r of res)for(const {i,d} of r.hits){
+      const row=rowOf(r.L,i)||{};
+      const ref=r.L.k==="places"?("https://pleiades.stoa.org/places/"+(row.pleiades_id||"")):
+                (row.doi?(/^https?:/.test(row.doi)?row.doi:"https://doi.org/"+row.doi):r.L.url);
+      lines.push([q(r.L.name),q(r.L.src),q(r.L.lic),q(row[r.L.cols[0]]||""),q(row[r.L.cols[1]]||""),
+        r.L.lat[i].toFixed(5),r.L.lon[i].toFixed(5),r.L.bp[i]||"",r.L.unc[i]||"",
+        q(r.L.classes[r.L.classOf(r.L.fl[i])]||""),d.toFixed(1),q(ref)].join(","));
+    }
+    return lines.join("\n");
+  };
+  $("qcopy").onclick=async e=>{e.target.textContent="building…";const csv=await build();
+    try{await navigator.clipboard.writeText(csv);e.target.textContent="copied ✓";}
+    catch(_){const t=$("qout");t.hidden=false;t.value=csv;t.select();
+      try{document.execCommand("copy");e.target.textContent="copied ✓";}catch(__){e.target.textContent="select & copy ↓";}}
+    setTimeout(()=>{e.target.textContent="copy CSV";},2400);};
+  $("qshow").onclick=async e=>{const t=$("qout");
+    if(t.hidden){e.target.textContent="building…";t.value=await build();t.hidden=false;e.target.textContent="hide table";}
+    else{t.hidden=true;e.target.textContent="show table";}};
+}
+
+/* ===================== coverage chart ===================== */
+const COVB=100,COVMAX=50000;
+let COV=null;
+function paintCovLegend(){
+  const el=$("covleg");if(!el)return;
+  el.innerHTML=(COV&&COV.series||[]).map(s=>`<span style="font-size:10.5px;color:var(--ink2);display:flex;align-items:center;gap:5px"><span style="width:9px;height:2px;background:${s.c};display:inline-block"></span>${s.name} <span style="color:var(--ink3);font-family:var(--mono);font-size:9.5px">${fmtN(s.dated)} dated</span></span>`).join("");
+}
+function buildCoverage(){
+  COV={bins:COVB,max:COVMAX,series:[]};
+  for(const L of LAYERS){
+    if(!L.ready||L.line)continue;
+    const a=new Float64Array(COVB);let dated=0;
+    for(let i=0;i<L.n;i++){const b=L.bp[i];if(b<=0)continue;dated++;
+      const k=Math.floor(b/COVMAX*COVB);if(k>=0&&k<COVB)a[k]++;}
+    if(dated)COV.series.push({k:L.k,name:L.name,c:L.c,a,dated});
+  }
+  paintCovLegend();
+  if(!$("pane-cover").hidden)drawCoverage();
+}
+function drawCoverage(){
+  const c=$("cov"),ctx=c.getContext("2d");
+  const W=c.width,H=c.height,PADL=44,PADR=10,PADT=12,PADB=26;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle="#070B16";ctx.fillRect(0,0,W,H);
+  if(!COV||!COV.series.length){ctx.fillStyle="#6C7793";ctx.font="13px ui-monospace,monospace";
+    ctx.fillText("Load a dated layer to see coverage.",PADL,H/2);return;}
+  let mx=1;for(const s of COV.series)for(const v of s.a)if(v>mx)mx=v;
+  const ly=v=>Math.log10(v+1),LM=ly(mx);
+  const X=i=>PADL+(i/(COVB-1))*(W-PADL-PADR);
+  const Y=v=>PADT+(1-ly(v)/LM)*(H-PADT-PADB);
+  ctx.strokeStyle="#1E2740";ctx.lineWidth=1;ctx.fillStyle="#6C7793";
+  ctx.font="13px ui-monospace,monospace";ctx.textAlign="right";
+  for(let p=0;p<=Math.ceil(LM);p++){const v=Math.pow(10,p);if(ly(v)>LM+0.01)break;
+    const y=Math.round(Y(v))+0.5;ctx.beginPath();ctx.moveTo(PADL,y);ctx.lineTo(W-PADR,y);ctx.stroke();
+    ctx.fillText(v>=1000?(v/1000)+"k":String(v),PADL-5,y+3.5);}
+  ctx.textAlign="center";
+  for(let k=0;k<=5;k++){const bp=k*10000,i=bp/COVMAX*(COVB-1);
+    ctx.fillText(bp?(bp/1000)+"k BP":"now",X(i),H-7);}
+  ctx.textAlign="left";
+  for(const s of COV.series){
+    ctx.beginPath();ctx.strokeStyle=s.c;ctx.lineWidth=2;ctx.lineJoin="round";
+    for(let i=0;i<COVB;i++){const x=X(i),y=Y(s.a[i]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+    ctx.lineWidth=2.4;ctx.stroke();
+  }
+  if(COVHOVER!=null){const i=COVHOVER,x=Math.round(X(i))+0.5;
+    ctx.strokeStyle="#5E7BE0";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,PADT);ctx.lineTo(x,H-PADB);ctx.stroke();
+    for(const s of COV.series){const y=Y(s.a[i]);ctx.fillStyle=s.c;ctx.beginPath();ctx.arc(x,y,3,0,7);ctx.fill();}}
+}
+let COVHOVER=null;
+(function(){const c=$("cov");
+ const upd=e=>{if(!COV||!COV.series.length)return;
+   const r=c.getBoundingClientRect(),PADL=34,PADR=8;
+   const px=(e.clientX-r.left)/r.width*c.width;
+   const i=Math.round((px-PADL)/(c.width-PADL-PADR)*(COVB-1));
+   COVHOVER=Math.max(0,Math.min(COVB-1,i));
+   const lo=Math.round(COVHOVER/COVB*COVMAX),hi=Math.round((COVHOVER+1)/COVB*COVMAX);
+   $("covtip").innerHTML=`<b>${fmtN(lo)}–${fmtN(hi)} BP</b> &nbsp;`+
+     COV.series.map(s=>`<span style="color:${s.c}">${s.name}: ${fmtN(s.a[COVHOVER])}</span>`).join(" · ");
+   drawCoverage();};
+ c.addEventListener("pointermove",upd);
+ c.addEventListener("pointerleave",()=>{COVHOVER=null;$("covtip").textContent="Hover the chart to read counts.";drawCoverage();});
+})();
+
+/* ===================== picking ===================== */
+cv.addEventListener("click",e=>{
+  if(!lastMVP)return;
+  const r=cv.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top;
+  let best=null,bd=26;
+  for(const n of NODES){
+    if(n.bp<NOW)continue;
+    if(n.gidx>=0&&GOFF.has(n.gidx))continue;
+    const s=project(n.v,lastMVP,r.width,r.height);if(!s)continue;
+    const d=Math.hypot(s.x-mx,s.y-my);if(d<bd){bd=d;best=n;}
+  }
+  if(best){selectNode(best);}
+  else{const hit=pickRecord(mx,my,r.width,r.height);
+    if(hit)selectRec(hit); else {selectNode(null);}}
+  hideHint();
+});
+$("railtoggle").onclick=e=>{const h=$("rail").classList.toggle("hide");
+  document.body.classList.toggle("railopen",!h);e.currentTarget.setAttribute("aria-pressed",String(!h));};
+
+/* ===================== labels ===================== */
+const LP=[],lbox=$("labels");
+function paintLabels(mvp,w,h,camv){
+  const path=SELN?new Set(ancestry(SELN).map(n=>n.id)):null;
+  const cand=[];
+  for(const n of NODES){
+    if(n.bp<NOW)continue;
+    if(n.gidx>=0&&GOFF.has(n.gidx))continue;
+    if(dot3(norm(n.v),norm(sub(camv,n.v)))<0.12)continue;
+    const s=project(n.v,mvp,w,h);if(!s||s.x<8||s.y<8||s.x>w-8||s.y>h-8)continue;
+    const on=path&&path.has(n.id);
+    if(path&&!on)continue;
+    cand.push({n,s,score:(on?1e6:0)+(n.n||n.desc||1)*4+(n.title?60:0)-(n.gidx<0?400:0)});
+  }
+  cand.sort((a,b)=>b.score-a.score);
+  const placed=[],out=[];
+  for(const c of cand){if(out.length>=14)break;
+    if(placed.some(p=>Math.abs(p.x-c.s.x)<72&&Math.abs(p.y-c.s.y)<15))continue;
+    placed.push(c.s);out.push(c);}
+  while(LP.length<out.length){const d=document.createElement("div");d.className="lbl";lbox.appendChild(d);LP.push(d);}
+  LP.forEach((d,i)=>{
+    if(i>=out.length){d.style.display="none";return;}
+    const {n,s}=out[i],t=String(n.title||n.id).split(" (");
+    d.style.display="";d.style.transform=`translate(-50%,-50%) translate(${s.x.toFixed(1)}px,${(s.y-12).toFixed(1)}px)`;
+    d.style.color=n.col===STEM?"#8E97B2":n.col;
+    d.innerHTML=`<b>${esc(t[0])}</b>${t[1]?` <i>${esc(t[1].replace(")",""))}</i>`:""}`;});
+}
+
+/* ===================== render ===================== */
+function resize(){DPR=Math.min(devicePixelRatio||1,2);
+ const w=Math.floor(innerWidth*DPR),h=Math.floor(innerHeight*DPR);
+ if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;cv.style.width=innerWidth+"px";cv.style.height=innerHeight+"px";}}
+let last=0;
+function frame(ts){
+  const dt=Math.min(0.05,(ts-last)/1000||0);last=ts;clock+=dt;
+  if(playing){let p=PT+dt*0.034*speed;if(p>=1){p=1;playing=false;paintPlay();}setTime(p);}
+  if(PATHFLY){
+    const H=PATHFLY.hops;
+    PATHFLY.t+=dt/2.0;
+    if(PATHFLY.t>=1){PATHFLY.t=0;PATHFLY.i++;if(PATHFLY.i>=H.length){PATHFLY=null;}}
+    if(PATHFLY){
+      const a=H[Math.max(0,PATHFLY.i-1)].n,b=H[PATHFLY.i].n,u=PATHFLY.t;
+      const e=u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
+      tgt={lat:a.lat+(b.lat-a.lat)*e,lon:a.lon+(((b.lon-a.lon+540)%360)-180)*e,d:1.85};
+      setTime(age2p(a.bp+(b.bp-a.bp)*e));
+      idle=0;
+    }
+  }
+  idle+=dt;
+  if(tgt){const k=1-Math.pow(0.0016,dt);
+    let dl=((tgt.lon-camLon+540)%360)-180;
+    camLon+=dl*k;camLat+=(tgt.lat-camLat)*k;camDist+=(tgt.d-camDist)*k;
+    if(Math.abs(dl)<0.25&&Math.abs(tgt.lat-camLat)<0.25)tgt=null;}
+  else if(idle>6&&!drag&&!RM.matches)camLon-=dt*1.5;
+  resize();
+  const w=cv.width,h=cv.height;
+  gl.viewport(0,0,w,h);
+  gl.clearColor(0.031,0.043,0.078,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+  gl.enable(gl.BLEND);
+  const cam=camPos();
+  const proj=m4persp(52*Math.PI/180,w/h,0.05,120);
+  proj[8]=(document.body.classList.contains("railopen")?330:0)/innerWidth;
+  const view=m4look(cam,V(0,0,0),V(0,1,0));
+  const mvp=m4mul(proj,view);lastMVP=mvp;lastCam=cam;
+  const sun=ll2v(14,camLon+36),PX=DPR;
+  gl.disable(gl.DEPTH_TEST);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+  useProg(pStar);gl.uniformMatrix4fv(pStar.u("uMVP"),false,mvp);gl.uniform1f(pStar.u("uPX"),PX);
+  bind(pStar,"aP",starP,3);bind(pStar,"aB",starB,1);gl.drawArrays(gl.POINTS,0,STARN);
+  gl.enable(gl.DEPTH_TEST);gl.depthMask(true);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  useProg(pGlobe);gl.uniformMatrix4fv(pGlobe.u("uMVP"),false,mvp);
+  gl.uniform3f(pGlobe.u("uCam"),cam.x,cam.y,cam.z);gl.uniform3f(pGlobe.u("uSun"),sun.x,sun.y,sun.z);
+  bind(pGlobe,"aP",sphP,3);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,sphI);
+  gl.drawElements(gl.TRIANGLES,SPH.n,gl.UNSIGNED_SHORT,0);
+  useProg(pLand);gl.uniformMatrix4fv(pLand.u("uMVP"),false,mvp);
+  gl.uniform3f(pLand.u("uCam"),cam.x,cam.y,cam.z);gl.uniform3f(pLand.u("uSun"),sun.x,sun.y,sun.z);
+  gl.uniform1f(pLand.u("uPX"),PX);bind(pLand,"aP",landB,3);gl.drawArrays(gl.POINTS,0,LANDCOUNT);
+  drawLayers(mvp,cam,PX);
+  gl.depthMask(false);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
+  drawTree(mvp,cam,PX);
+  gl.depthMask(true);
+  paintLabels(mvp,innerWidth,innerHeight,cam);
+  if(typeof paintWaypoints==="function")paintWaypoints(mvp,innerWidth,innerHeight,cam);
+  requestAnimationFrame(frame);
+}
+
+/* ===================== boot ===================== */
+let AADRN=19029;
+(async function boot(){
+  document.body.classList.toggle("railopen",innerWidth>=880);
+  if(innerWidth<880){$("rail").classList.add("hide");$("railtoggle").setAttribute("aria-pressed","false");}
+  setTime(1);paintPlay();paintProv();paintLayers();
+  requestAnimationFrame(frame);
+  try{const man=await (await fetch("d/manifest.json")).json();
+    if(man.genomes&&man.genomes.n)AADRN=man.genomes.n;
+    for(const L of LAYERS)if(man[L.k]&&man[L.k].n)L.total=man[L.k].n;}catch(e){}
+  await reTree();
+  for(const k of ["genomes","places"]){LBY[k].on=true;await loadLayer(LBY[k]);}
+  try{
+    const t=(await (await fetch("d/genomes_hap.bin.txt")).text()).trim();
+    const bs=atob(t),u8=new Uint8Array(bs.length);
+    for(let i=0;i<bs.length;i++)u8[i]=bs.charCodeAt(i);
+    const dv=new DataView(u8.buffer),n=(bs.length/4)|0;
+    HAP.y=new Int32Array(n);HAP.mt=new Int32Array(n);
+    for(let i=0;i<n;i++){HAP.y[i]=dv.getInt16(i*4,true);HAP.mt[i]=dv.getInt16(i*4+2,true);}
+  }catch(e){}
+  paintLayers();paintFilters();paintPath();
+  $("boot").classList.add("gone");
+})();
+</script>
+<script>
+"use strict";
+/* ===================== filters ===================== */
+const ASMT_NAMES=["Pass","Provisional / merge","Questionable","Critical"];
+function paintFilters(){
+  const g=LBY.genomes;
+  const qc=[0,1,2,3].map(a=>{
+    let n=0; if(g.ready)for(let i=0;i<g.n;i++)if(((g.fl[i]>>1)&3)===a)n++;
+    return n;});
+  $("filters").innerHTML=
+   `<div class="frow"><label for="rmin">dated between</label>
+      <input type="number" id="rmin" min="0" max="300000" step="100" value="${RANGE[0]}">
+      <span style="color:var(--ink3)">–</span>
+      <input type="number" id="rmax" min="0" max="300000" step="100" value="${RANGE[1]}">
+      <span style="color:var(--ink3);font-family:var(--mono);font-size:10px">BP</span></div>
+    <div class="frow" style="margin-top:5px">${
+      [[0,300000,"all"],[0,12000,"Holocene"],[12000,50000,"Upper Pal."],[0,6000,"≤6k"],[0,3000,"≤3k"]]
+      .map(([a,b,l])=>`<button class="btn" data-r="${a},${b}" style="padding:4px 7px;font-size:10px"
+        aria-pressed="${RANGE[0]===a&&RANGE[1]===b}">${l}</button>`).join("")}</div>
+    <p class="note" style="margin-top:7px">Records outside the range are removed entirely; the
+      scrubber then animates inside it.</p>
+    <h2 style="font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+      color:var(--ink3);margin:10px 0 2px;font-weight:500">Genome quality · AADR assessment</h2>
+    ${ASMT_NAMES.map((nm,a)=>`<button class="lg" data-q="${a}" data-off="${QOFF.has(a)}" aria-pressed="${!QOFF.has(a)}">
+        <span class="sw" style="background:${a<2?"#45a903":a===2?"#c98500":"#c91304"};color:transparent"></span>
+        <span class="nm" style="font-size:11.5px">${nm}</span>
+        <span class="ct">${g.ready?fmtN(qc[a]):"—"}</span></button>`).join("")}
+    <button class="lg" id="linfil" data-off="${!LINFILTER}" aria-pressed="${LINFILTER}" style="margin-top:8px">
+      <span class="sw" style="background:#fb2189;color:#fb2189"></span>
+      <span class="nm">Only carriers of the selected clade
+        <span class="src">${SELN?esc(SELN.id)+" and its subclades":"select a clade first"}</span></span></button>
+    <p class="note">Uses each individual's own ${MARK==="y"?"Y":"mtDNA"} haplogroup call, matched
+      against the clade tree — ${MARK==="y"?"51.8":"77.1"}% of individuals carry a usable call at this marker.</p>`;
+  const bind2=(sel,fn)=>$("filters").querySelectorAll(sel).forEach(b=>b.onclick=()=>fn(b));
+  const commit=()=>{paintFilters();refreshAllLayers();paintQuery();buildCoverage();};
+  bind2("[data-r]",b=>{const [a,c]=b.dataset.r.split(",").map(Number);RANGE=[a,c];commit();});
+  bind2("[data-q]",b=>{const a=+b.dataset.q;QOFF.has(a)?QOFF.delete(a):QOFF.add(a);commit();});
+  $("linfil").onclick=()=>{LINFILTER=!LINFILTER;commit();};
+  const rd=()=>{let a=+$("rmin").value||0,b=+$("rmax").value||300000;
+    if(a>b){const t=a;a=b;b=t;} RANGE=[Math.max(0,a),Math.min(300000,b)];commit();};
+  $("rmin").onchange=rd; $("rmax").onchange=rd;
+}
+
+/* ===================== clade search ===================== */
+function paintHits(q){
+  const raw=TREES["tree_"+MARK]||[];
+  const el=$("chits");
+  q=(q||"").trim().toLowerCase();
+  if(!q){el.innerHTML="";return;}
+  const hits=raw.filter(d=>d.id.toLowerCase().startsWith(q))
+    .sort((a,b)=>(b.n||0)-(a.n||0)).slice(0,40);
+  el.innerHTML=hits.length?hits.map(d=>
+    `<button class="hit" data-id="${esc(d.id)}">
+       <span class="id">${esc(d.id)}</span>
+       <span style="color:var(--ink3);font-size:10px">${fmtAge(d.bp)} BP</span>
+       <span class="m">${d.n?fmtN(d.n)+" members":""}</span></button>`).join("")
+    :`<p class="note">No clade starts with “${esc(q)}”.</p>`;
+  el.querySelectorAll(".hit").forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.id;
+    let n=NODES.find(x=>x.id===id);
+    if(!n){ DLEV=2;[0,1,2].forEach(j=>$("dt"+j).setAttribute("aria-pressed",String(j===2)));
+      await buildTree();paintLegend();paintTreeNote();n=NODES.find(x=>x.id===id); }
+    if(n)selectNode(n);
+  });
+}
+$("csearch").addEventListener("input",e=>paintHits(e.target.value));
+
+/* ===================== migration path ===================== */
+function pathHops(){
+  if(!SELN)return [];
+  const chain=ancestry(SELN);
+  let cum=0;
+  return chain.map((n,i)=>{
+    const prev=i?chain[i-1]:null;
+    const d=prev?haversine(prev.lat,prev.lon,n.lat,n.lon):0;
+    cum+=d;
+    const yrs=prev?Math.max(0,prev.bp-n.bp):0;
+    return {n,d,cum,yrs,rate:yrs>0?d/(yrs/1000):null};
+  });
+}
+function pathLen(chain,which){
+  let t=0;
+  for(let i=1;i<chain.length;i++){
+    const a=chain[i-1],b=chain[i];
+    t+=which==="c"?haversine(a.clat,a.clon,b.clat,b.clon)
+                  :haversine(a.olat,a.olon,b.olat,b.olon);
+  }
+  return t;
+}
+function paintPath(){
+  const el=$("pathcard");
+  if(!SELN){el.innerHTML=`<div class="db"><p style="color:var(--ink3)">Select a clade to draw its
+    route from the root — every hop, with distance, elapsed time and implied pace.</p></div>`;return;}
+  const hops=pathHops();
+  const tot=hops[hops.length-1].cum, span=hops[0].n.bp-SELN.bp;
+  const chain=ancestry(SELN);
+  const lc=pathLen(chain,"c"), lo=pathLen(chain,"o");
+  const spread=lc>0?lo/lc:0;
+  const pace=span>0?tot/(span/1000):null;
+  const flat=hops.slice(1).filter(h=>h.yrs<=0).length;   // legs whose ends share an oldest sample
+  el.innerHTML=
+   `<div class="dh"><span class="code" style="color:${SELN.col}">${esc(SELN.id)}</span>
+      <span class="tsfx">${hops.length} waypoints</span>
+      <span class="age">${fmtN(Math.round(tot))} km</span></div>
+    <div class="db">
+      <dl class="kv">
+        <dt>Span</dt><dd>${fmtAge(hops[0].n.bp)} → ${fmtAge(SELN.bp)} BP (${fmtN(Math.round(span))} yr)</dd>
+        <dt>Net pace</dt><dd>${pace!=null?fmtN(Math.round(pace))+" km per millennium":"—"}</dd>
+        <dt>Centroid</dt><dd>${fmtN(Math.round(lc))} km${POSMODE==="c"?" ← shown":""}</dd>
+        <dt>Oldest</dt><dd>${fmtN(Math.round(lo))} km${POSMODE==="o"?" ← shown":""}</dd>
+      </dl>
+      ${pace!=null&&pace>2000?`<p class="note warn"><b>That pace is not a rate of travel.</b>
+        ${fmtN(Math.round(pace))} km per millennium exceeds even the fastest colonisations in the
+        record, which means the waypoints are not in ancestral order: a parent clade's oldest
+        sampled carrier can sit far from where the clade arose, often inside a descendant
+        population. Read the route as a set of dated sightings, not an itinerary.</p>`:""}
+      ${flat>0?`<p class="note">${flat} of ${hops.length-1} legs span <b>zero years</b> — parent and
+        child share the same oldest sampled individual, so those legs date nothing.</p>`:""}
+      ${lc>0&&spread>1.6?`<p class="note warn">The two estimators disagree by
+        <b>${spread.toFixed(1)}×</b> on how far this lineage travelled. Neither is the answer;
+        the gap is how much of the route is being supplied by the choice of statistic rather
+        than by the data.</p>`:""}
+      <div class="tbtns"><button class="btn" id="flypath">▶ fly this path</button>
+        <button class="btn" id="pathcsv">copy CSV</button></div>
+      <textarea id="pathout" hidden readonly spellcheck="false"></textarea>
+      <div>${hops.map((h,i)=>
+        `<div class="hop"><span class="num">${i+1}</span>
+           <span class="nm" data-n="${h.n.idx}" style="color:${h.n.col}">${esc(h.n.title||h.n.id)}</span>
+           <span class="d">${fmtAge(h.n.bp)} BP</span>
+           <span class="meta">${h.n.lat.toFixed(1)}, ${h.n.lon.toFixed(1)}${
+             i?` · ${fmtN(Math.round(h.d))} km ${h.yrs>0?`over ${fmtN(Math.round(h.yrs))} yr`:"· same oldest sample"}${
+             h.rate!=null?` · ${h.rate.toFixed(1)} km/kyr`:""}`:" · root"}${
+             h.n.n?` · ${fmtN(h.n.n)} members`:""}</span></div>`).join("")}</div>
+      <p class="note">Distances are great-circle between clade positions, so they are a
+        <b>lower bound</b> on any real journey. Pace assumes the ancestor's oldest sample dates the
+        departure, which it does not — it dates the oldest carrier anyone has dug up.</p>
+    </div>`;
+  el.querySelectorAll(".nm[data-n]").forEach(b=>b.onclick=()=>selectNode(NODES[+b.dataset.n]));
+  $("flypath").onclick=()=>{PATHFLY={hops,i:0,t:0};playing=false;paintPlay();};
+  $("pathcsv").onclick=async e=>{
+    const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+    const csv=["step,clade,years_bp,latitude,longitude,leg_km,cumulative_km,elapsed_yr,km_per_kyr,members,position_estimator,marker,tree_source"]
+      .concat(hops.map((h,i)=>[i+1,q(h.n.id),h.n.bp,h.n.lat.toFixed(4),h.n.lon.toFixed(4),
+        Math.round(h.d),Math.round(h.cum),Math.round(h.yrs),h.rate!=null?h.rate.toFixed(2):"",
+        h.n.n||"",POSMODE==="c"?"centroid":"oldest_sample",MARK,SRC==="obs"?"AADR_v66_observed":"reference_backbone"].join(","))).join("\n");
+    try{await navigator.clipboard.writeText(csv);e.target.textContent="copied ✓";}
+    catch(_){const t=$("pathout");t.hidden=false;t.value=csv;t.select();
+      try{document.execCommand("copy");e.target.textContent="copied ✓";}catch(__){e.target.textContent="select & copy ↓";}}
+    setTimeout(()=>{e.target.textContent="copy CSV";},2200);};
+}
+
+/* ===================== waypoint markers ===================== */
+const WP=[],wbox=$("waypoints");
+function paintWaypoints(mvp,w,h,camv){
+  const hops=SELN?pathHops():[];
+  while(WP.length<hops.length){const d=document.createElement("div");d.className="wp";
+    d.innerHTML='<div class="dot"></div><div class="cap"></div>';wbox.appendChild(d);WP.push(d);}
+  const placed=[];
+  WP.forEach((d,i)=>{
+    if(i>=hops.length){d.style.display="none";return;}
+    const n=hops[i].n;
+    if(n.bp<NOW||dot3(norm(n.v),norm(sub(camv,n.v)))<0.05){d.style.display="none";return;}
+    const s=project(n.v,mvp,w,h);
+    if(!s||s.x<-40||s.y<-40||s.x>w+40||s.y>h+40){d.style.display="none";return;}
+    const ends=(i===0||i===hops.length-1);
+    if(!ends&&placed.some(q=>Math.hypot(q.x-s.x,q.y-s.y)<30)){d.style.display="none";return;}
+    placed.push(s);
+    d.style.display="";d.style.color=n.col;
+    d.style.transform=`translate(-50%,-50%) translate(${s.x.toFixed(1)}px,${s.y.toFixed(1)}px)`;
+    d.querySelector(".dot").textContent=String(i+1);
+    d.querySelector(".cap").innerHTML=`<b style="color:${n.col}">${esc(n.id)}</b> <i>${fmtAge(n.bp)} BP</i>`;
+  });
+}
+
+/* ===================== hooks ===================== */
+const _selectNode=selectNode;
+selectNode=function(n){_selectNode(n);PATHFLY=null;paintPath();paintFilters();
+  if(LINFILTER)refreshAllLayers();};
+const _reTree=reTree;
+reTree=async function(){await _reTree();paintPath();paintFilters();paintHits($("csearch").value);
+  if(LINFILTER)refreshAllLayers();};
+</script>
