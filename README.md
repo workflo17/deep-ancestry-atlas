@@ -7,8 +7,11 @@ a cross-layer query that exports results with their citations attached.
 One HTML file, hand-rolled WebGL2, no framework and no dependencies. The data arrives as static
 files, so the whole thing is a directory you can serve from anywhere.
 
+Live: **[deep-ancestry-atlas-workflo17.vercel.app](https://deep-ancestry-atlas-workflo17.vercel.app)** ·
 Sources and obligations: [`ATTRIBUTION.md`](ATTRIBUTION.md) ·
 Plan and layer research: [`docs/`](docs/)
+
+![Every layer on at 2,500 BP: 262,000 records on the globe, and the strata timeline showing sampling density in every period](docs/atlas.jpg)
 
 ---
 
@@ -22,6 +25,25 @@ seen is that inference, drawn by hand, with the uncertainty left off.
 So this tool is built to keep the inference visible as an inference. It will not draw you a
 confident arrow it cannot support, and where it has to guess it tells you how much of the answer
 is coming from the guess.
+
+## Using the atlas
+
+- **Search** (`/`) finds lineages on both markers, places, samples and named periods; pick one and
+  the globe flies to it.
+- **The strata timeline** along the bottom is the main control. Named periods are drawn as bands,
+  and the sediment inside them is the density of dated records for every layer that is on — so the
+  sampling bias stays in view the whole time. Drag it, press `space` to play, `←` `→` to step.
+- **The panel** has four tabs. *Layers* switches evidence on and off, with per-class filters, the
+  AADR quality grades and the date range. *Lineages* picks the marker, the tree source, the
+  placement estimator and the detail cut. *Selection* is the dossier for whatever you clicked: a
+  clade's route from the root, a record's citation, and every loaded layer within a radius,
+  exportable as CSV. *Sources* carries the licences and the coverage chart.
+- **Click** anything on the globe to inspect it; hover to identify it. `Esc` clears the selection,
+  `L` hides the panel, `?` opens the guide.
+- **The URL is the view.** Marker, tree, placement, selection, time, camera and layers all live in
+  the hash, so a link reproduces exactly what you were looking at. The link button copies it.
+
+![Y-DNA R1b1a1b traced from its root at 4,200 BP: the dossier, the route card and its waypoints on the globe](docs/atlas-route.jpg)
 
 ## Layers
 
@@ -60,10 +82,10 @@ structure the sampled record cannot reach. It is labelled as not-observed.
 
 ## Tracing a lineage
 
-Select a clade and the **migration path** card lays out its route from the root: numbered
-waypoints on the globe, every hop with position, leg distance, elapsed time, implied pace and
-member count, exportable as CSV. `fly this path` walks the camera through the waypoints while the
-clock advances with it.
+Select a clade and the **route** card lays out its path from the root: numbered waypoints on the
+globe, every hop with position, leg distance, elapsed time, implied pace and member count,
+exportable as CSV. **Fly the route** walks the camera through the waypoints while the clock
+advances with it.
 
 The card is built to argue with itself:
 
@@ -86,7 +108,7 @@ The card is built to argue with itself:
   `startsWith` would silently produce wrong carrier sets.
 - **Date range** — a hard filter in years BP; the scrubber then animates inside it.
 - **Genome quality** — the AADR's own assessment grades.
-- **Per-layer class filters**, and a **clade search** that reaches below the detail cut.
+- **Per-layer class filters**, and a **search** that reaches below the detail cut.
 
 ## The cross-layer query
 
@@ -98,8 +120,9 @@ reference per row**. If you cannot cite it, it is not a research tool.
 ## What the data says, whether or not you wanted to know
 
 - **99.3% of ancient genomes are younger than 15,000 BP** (radiocarbon: 95.8%). The deep-time
-  story this project exists to tell rests on well under 1% of the evidence. The coverage tab
-  plots it per layer on a log scale, because it should condition every other view.
+  story this project exists to tell rests on well under 1% of the evidence. The timeline draws it
+  as sediment under every period and the Sources tab plots it per layer on a log scale, because
+  it should condition every other view.
 - **The observed Y tree is a forest, not a tree.** Its macro-haplogroups have no connections above
   them: the AADR's nomenclature does not encode the deep backbone and no sampled individual
   bridges it. The single-rooted textbook tree is an inference the sampled record does not contain.
