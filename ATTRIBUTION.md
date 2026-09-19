@@ -1,8 +1,9 @@
 # Sources, licences and obligations
 
-This project redistributes **derived databases** built from eight upstream sources. Each carries
-its own terms, and two of them impose obligations beyond attribution. Every licence below was
-read from the source's own `LICENSE` file or README, not from memory.
+This project redistributes **derived databases** built from eleven upstream sources: eight that
+are evidence, and three that draw the ground the evidence sits on. Each carries its own terms, and
+two of them impose obligations beyond attribution. Every licence below was read from the source's
+own `LICENSE` file, README, metadata record or landing page, not from memory.
 
 If you fork, deploy or publish this, these terms travel with the data.
 
@@ -92,6 +93,76 @@ database under **ODbL 1.0** — which it is, regardless of the MIT licence on th
 ### 8. Land outlines — Natural Earth · **public domain**
 
 > https://www.naturalearthdata.com · via https://github.com/nvkelso/natural-earth-vector
+
+The 110m land polygons make the 48,000-point dotted globe that draws while the rasters load. The
+10m set does more. Its coastline is the thin modern outline on the globe, and its lakes are drawn
+as water at every date. Its land polygons, with the minor islands, are the mask that stops dry
+ground below sea level (the Dutch polders, the Caspian depression, Qattara) from flooding when the
+sea moves. The 10m Antarctic ice shelves fill in what the PaleoMIST grounding line leaves bare.
+
+### 9. Terrain and sea floor: ETOPO 2022 · **not copyrighted in the US**
+
+The 60 arc-second surface-elevation grid, downsampled to 4096 × 2048 and 2048 × 1024.
+
+> NOAA National Centers for Environmental Information. 2022: *ETOPO 2022 15 Arc-Second Global
+> Relief Model.* NOAA National Centers for Environmental Information.
+> https://doi.org/10.25921/fd45-gt74. Accessed 2026-09-19.
+
+NOAA's metadata record states the terms: "Produced by the NOAA National Centers for Environmental
+Information. Not subject to copyright protection within the United States." It asks for the
+citation above with an access date, and adds "Not to be used for navigation." The record is silent
+about other jurisdictions, so treat the citation as the obligation everywhere.
+
+### 10. Sea level: Spratt & Lisiecki 2016 · **cite the paper**
+
+> Spratt, R. M., & Lisiecki, L. E. (2016). A Late Pleistocene sea level stack. *Climate of the
+> Past* 12, 1079-1092. https://doi.org/10.5194/cp-12-1079-2016 (the paper is CC BY 3.0)
+>
+> Data: NOAA World Data Service for Paleoclimatology, study 19982.
+> https://www.ncei.noaa.gov/access/paleo-search/study/19982. Accessed 2026-09-19.
+
+The data file's own header sets the terms: "Please cite original publication, online resource and
+date accessed when using this data." The atlas ships 301 values of the short stack, 0 to 300 ka,
+with their standard deviations, in `d/earth.json`.
+
+One change is made to them, and that file declares it: the values for 0 to 5 ka are drawn as 0 m.
+The authors scaled the stack to 0 m at 5 ka, which leaves +3 to +8 m for the four thousand years
+since. That is inside the stack's own 95% interval of zero and contradicts what Holocene
+shorelines record, and it would have put today's coast under water. (The DOI printed in NOAA's
+file header, 10.5194/cp-12-1-2016, resolves to a different article. The one above is the paper.)
+
+### 11. Ice sheets: PaleoMIST 1.0 · **CC BY 4.0**
+
+> Gowan, E. J., Zhang, X., Khosravi, S., Rovere, A., Stocchi, P., Hughes, A. L. C.,
+> Gyllencreutz, R., Mangerud, J., Svendsen, J.-I., & Lohmann, G. (2021). A new global ice sheet
+> reconstruction for the past 80 000 years. *Nature Communications* 12, 1199.
+> https://doi.org/10.1038/s41467-021-21469-w
+>
+> Gowan, E. J. (2019). *Global ice sheet reconstruction for the past 80000 years* [dataset].
+> PANGAEA. https://doi.org/10.1594/PANGAEA.905800
+
+The licence is stated on the PANGAEA landing page. The atlas uses the ice **margins** only (North
+America with Greenland, Eurasia, Antarctica and Patagonia, in the minimal MIS 3 scenario),
+rasterised into `d/ice.png`. That is a changed version of the original, which CC BY asks you to
+say.
+
+PaleoMIST stops at 80,000 BP. Whatever the atlas draws before that is an analogue picked from
+these slices by sea level. It is the atlas's guess, and it should not be cited as Gowan et al.'s
+reconstruction.
+
+## Considered and not shipped
+
+Two sources the globe could have used were left out, because their terms could not be verified
+from their own pages.
+
+**Yale Bright Star Catalogue (BSC5).** It is often described as public domain, but neither
+distributor says so. The CDS ReadMe for catalogue V/50 carries no licence, the CDS terms for
+VizieR say catalogues are "free of usage in a scientific context" with citation, and NASA
+HEASARC's page states none. That is not an open licence, so the sky stays procedural.
+
+**Batchelor et al. 2019**, *The configuration of Northern Hemisphere ice sheets through the
+Quaternary.* The paper is CC BY 4.0, but the shapefiles sit in an OSF project (osf.io/7jen3) whose
+licence field is empty. It would have covered the glacial cycles before 80,000 BP.
 
 ---
 

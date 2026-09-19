@@ -303,7 +303,7 @@ assert origins for living communities who have their own account of where they c
 | **0 — Engine** | Globe, time scrubber, tree-as-network, particles, selection. | **done** |
 | **1 — Real points** | Real AADR v66: 19,029 dated georeferenced individuals, via the Poseidon `aadr-archive` (the Reich Lab host is unreachable from a sandbox; Poseidon republishes the same release as `.janno`). | **done** |
 | **2 — Real tree** | 701 Y and 705 mtDNA clades prefix-parsed from AADR haplogroup calls; centroid **and** oldest-member position estimators; oldest-observed dates rather than TMRCAs. | **done** |
-| **3 — Paleo-world** | `pastclim` land/ice masks per slice; animated coastlines and ice sheets. **Highest impact per hour of the whole plan.** | ~3–4 weeks |
+| **3 — Paleo-world** | Animated coastlines and ice sheets. Built by a different route than the `pastclim` masks planned here: ETOPO 2022 cut at the Spratt & Lisiecki sea-level stack, with PaleoMIST 1.0 ice margins (see "The ground" in the README). The coast is eustatic, so it is approximate near the old ice sheets. | **done** |
 | **4 — Routing** | Cost surfaces, least-cost paths, offline precompute. | ~4 weeks |
 | **5 — Better inference** | Continuous phylogeography; render the posterior, not a line. | ~3–4 weeks |
 | **6 — Ancestry components** | qpAdm proportions as flowing ribbons — the modern framing. | open-ended |
@@ -347,7 +347,9 @@ network requests except a web font. Open it directly in a browser.
   matching places broken down by class, exportable as CSV with a citable Pleiades URI on
   every row.
 - Geography is genuine Natural Earth 110m land, resampled to 48,000 uniform points and
-  shipped as an 8 KB bitmask.
+  shipped as an 8 KB bitmask. The dotted globe draws while the rasters load. The ground proper
+  is ETOPO 2022 terrain, with a coastline that follows the sea level of the date and PaleoMIST
+  1.0 ice.
 - The **engine is the real engine**: dated tree → great-circle branches → time as a GPU
   uniform → particles riding the grown portion. Swapping in AADR-derived paths is a data
   change, not an architecture change.

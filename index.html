@@ -282,6 +282,16 @@
   .ycap{font-size:11px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
   .epoch{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--ink2);white-space:nowrap;overflow:hidden;
     text-overflow:ellipsis;min-width:0;padding-left:6px}
+  /* the sea level the globe's coastline is drawn at */
+  .seachip{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;border:1px solid var(--line2);border-radius:999px;
+    padding:3px 9px 3px 7px;font-family:var(--mono);font-size:11px;color:var(--ink2);white-space:nowrap;
+    font-variant-numeric:tabular-nums;background:rgba(13,13,17,.5);position:relative;
+    transition:background .15s,color .15s,border-color .15s}
+  .seachip:hover{background:var(--lift2);color:var(--ink);border-color:rgba(237,233,225,.3)}
+  .seachip:active{background:var(--lift2)}
+  .seachip svg{width:13px;height:13px;color:var(--ink3);flex:0 0 auto}
+  .seachip b{font-weight:500;color:var(--ink)}
+  .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
   .tright{margin-left:auto;display:flex;align-items:center;gap:8px}
   .mob{display:none}
   .strata{position:relative;height:46px;margin-top:9px;border-radius:7px;overflow:hidden;border:1px solid var(--line2);
@@ -366,6 +376,9 @@
     .search input,.inp{font-size:16px}
     .lead,.note,.db p,.row .nm,.kv,.qrow{font-size:14px}
     .bigyear{font-size:26px} .ycap{display:none} .epoch{font-size:14px}
+    .seachip{padding:3px 7px 3px 6px;gap:4px}
+    .readout{flex:0 0 auto}            /* the year keeps its width; the period name gives way, it already ellipsizes */
+    .seachip::after{content:"";position:absolute;inset:-11px -2px}     /* a 44px touch target around a small pill */
     #speed,.tright .seg{display:none} .mob{display:inline-flex}
     .strata{height:36px;margin-top:6px}
     .ticks i[data-m="1000"],.ticks i[data-m="20000"]{display:none}
@@ -378,6 +391,10 @@
   }
   @media (max-width:430px){
     .wordmark{font-size:17px} .search .field{padding:0 8px 0 10px;gap:6px}
+    .seachip svg{display:none} .seachip{padding:3px 7px}
+  }
+  @media (max-width:360px){
+    .epoch{display:none} .bigyear{font-size:22px}
   }
   @media (max-height:480px){
     :root{--tl:96px}
@@ -487,6 +504,7 @@
     <button class="pbtn" id="play" aria-pressed="false" title="Play (space)" aria-label="Play"></button>
     <button class="ibtn sm" id="rewind" title="Back to 300,000 years ago" aria-label="Back to 300,000 years ago"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v14"/><path d="M19 5 9 12l10 7V5Z" fill="currentColor" stroke="none"/></svg></button>
     <div class="readout"><span class="bigyear" id="year">Present day</span><span class="ycap" id="ycap"></span></div>
+    <button class="seachip" id="sea" type="button" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 9c3-3 6 3 9 0s6 3 9 0M3 15c3-3 6 3 9 0s6 3 9 0"/></svg><span class="vh">Sea level </span><b id="seaval"></b><span class="vh">. Open its source and caveats.</span></button>
     <div class="epoch" id="epoch"></div>
     <div class="tright">
       <div class="seg mini" role="group" aria-label="Time mode">
@@ -595,7 +613,10 @@ const fmtN=n=>n.toLocaleString("en-US");
 
 /* ===================== GL ===================== */
 const cv=$("stage");
-const gl=cv.getContext("webgl2",{antialias:true,alpha:false})||cv.getContext("webgl",{antialias:true,alpha:false});
+// WebGL2 draws into its own multisampled buffer (see "post" below), so the canvas itself needs no
+// antialiasing. WebGL1 is the fallback: flat globe, no post pass, the context's own antialiasing.
+const gl=cv.getContext("webgl2",{antialias:false,alpha:false})||cv.getContext("webgl",{antialias:true,alpha:false});
+const GL2=typeof WebGL2RenderingContext!=="undefined"&&gl instanceof WebGL2RenderingContext;
 function sh(t,src){const s=gl.createShader(t);gl.shaderSource(s,src);gl.compileShader(s);
  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(s),src);return s;}
 function prog(v,f){const p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,v));
@@ -627,18 +648,21 @@ const pGlobe=prog(
  vec3 base=mix(vec3(0.031,0.043,0.078),vec3(0.055,0.075,0.125),lam);
  gl_FragColor=vec4(base+vec3(0.10,0.22,0.48)*pow(vF,3.2)*0.85,1.0);}`);
 
-const STARN=1400,sp=new Float32Array(STARN*3),sb=new Float32Array(STARN);
+// Procedural sky. A real catalogue was considered and not shipped: see ATTRIBUTION.md. Brightness
+// follows a steep power law, as apparent magnitudes do, so a few stars carry the field.
+const STARN=2200,sp=new Float32Array(STARN*3),sb=new Float32Array(STARN);
 (()=>{let s=20240919;const R=()=>(s=(s*1103515245+12345)&0x7fffffff)/0x7fffffff;
  for(let i=0;i<STARN;i++){const u=R()*2-1,th=R()*2*Math.PI,r=Math.sqrt(1-u*u);
   sp[i*3]=r*Math.cos(th)*38;sp[i*3+1]=u*38;sp[i*3+2]=r*Math.sin(th)*38;
-  sb[i]=0.16+Math.pow(R(),2.6)*0.84;}})();
+  sb[i]=0.12+Math.pow(R(),4.2)*0.88;}})();
 const starP=buf(sp),starB=buf(sb);
 const pStar=prog(
-`attribute vec3 aP;attribute float aB;uniform mat4 uMVP;uniform float uPX;varying float vB;
- void main(){vB=aB;gl_Position=uMVP*vec4(aP,1.0);gl_PointSize=(0.7+aB*1.7)*uPX;}`,
-`precision mediump float;varying float vB;
+`attribute vec3 aP;attribute float aB;uniform mat4 uMVP;uniform float uPX;varying float vB;varying vec3 vC;
+ void main(){vB=aB;vC=mix(vec3(1.0,0.84,0.70),vec3(0.70,0.80,1.0),fract(aB*91.7));
+ gl_Position=uMVP*vec4(aP,1.0);gl_PointSize=(0.8+aB*2.3)*uPX;}`,
+`precision mediump float;varying float vB;varying vec3 vC;
  void main(){vec2 d=gl_PointCoord-0.5;float a=max(0.0,1.0-length(d)*2.0);
- gl_FragColor=vec4(vec3(0.72,0.78,0.95)*vB,a*a*vB*0.95);}`);
+ gl_FragColor=vec4(vC*(0.55+0.45*vB),a*a*(0.30+0.70*vB)*0.9);}`);
 
 const LANDN=48000;
 const landPos=(()=>{const bin=atob(LANDMASK),out=[],GA=Math.PI*(3-Math.sqrt(5));
@@ -653,31 +677,244 @@ const pLand=prog(
  vA=smoothstep(-0.06,0.30,dot(n,vd));vL=0.34+0.66*max(dot(n,normalize(uSun)),0.0);
  vec4 mv=uMVP*vec4(aP*1.0035,1.0);gl_Position=mv;
  gl_PointSize=max(1.0,(2.8*uPX)*(1.0/max(mv.w,0.35)));}`,
-`precision mediump float;varying float vA,vL;
+`precision mediump float;varying float vA,vL;uniform float uA;
  void main(){vec2 d=gl_PointCoord-0.5;float r=length(d)*2.0;if(r>1.0)discard;
  vec3 c=mix(vec3(0.26,0.34,0.49),vec3(0.66,0.75,0.90),vL);
- gl_FragColor=vec4(c,(1.0-r*r)*vA*0.80);}`);
+ gl_FragColor=vec4(c,(1.0-r*r)*vA*0.80*uA);}`);
+
+/* ===================== earth: raster ground, the sea level of the date, ice, air =====================
+   The flat globe and the dotted land above stay as the fallback: they are what draws until the
+   rasters arrive, on WebGL1, and if anything in d/earth* fails to load.
+   d/earth-N.webp   R elevation for tint (sqrt companded, 128 = sea level)
+                    G median elevation, 1 m per code from -150 m: the coastline is G against uSea
+                    B lake fraction
+   d/relief-N.webp  slope gradient, east stacked over north; lit by the studio sun, not baked
+   d/ice.png        33 signed-distance tiles, 80 ka to present: two are mixed and cut at zero,
+                    so the margin travels between slices instead of cross-fading            */
+const EARTH={ready:false,fade:0,meta:null,elev:null,relief:null,ice:null,ramp:null,analog:null,err:null};
+// /d/ is cached for a day and this page is not, so the ground's files carry a version from here.
+// Bump it whenever build-earth.py or build-ice.py output changes: a stale raster read with fresh
+// decoding constants would put the coast in the wrong place.
+const GROUNDV="?v=20260919";
+const ANISO=gl.getExtension("EXT_texture_filter_anisotropic");
+function texOpts(mips,repeatS){
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,mips?gl.LINEAR_MIPMAP_LINEAR:gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,repeatS?gl.REPEAT:gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  if(mips){gl.generateMipmap(gl.TEXTURE_2D);
+    if(ANISO)gl.texParameterf(gl.TEXTURE_2D,ANISO.TEXTURE_MAX_ANISOTROPY_EXT,
+      Math.min(4,gl.getParameter(ANISO.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));}
+}
+function texFrom(src,ifmt,fmt,mips,repeatS){
+  const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
+  gl.texImage2D(gl.TEXTURE_2D,0,ifmt,fmt,gl.UNSIGNED_BYTE,src);texOpts(mips,repeatS);return t;
+}
+// these rasters are data, so the decode must not colour-manage or premultiply them
+async function bitmap(url){const r=await fetch(url);if(!r.ok)throw new Error(url+" "+r.status);
+  return createImageBitmap(await r.blob(),{premultiplyAlpha:"none",colorSpaceConversion:"none"});}
+
+const TRI=`#version 300 es
+out vec2 vUV;void main(){vec2 p=vec2(float((gl_VertexID<<1)&2),float(gl_VertexID&2));vUV=p;gl_Position=vec4(p*2.0-1.0,0.0,1.0);}`;
+// the relief file is one channel, east stacked over north; unstack it on the GPU into RG
+const pUnstack=GL2&&prog(TRI,`#version 300 es
+precision highp float;uniform sampler2D uT;in vec2 vUV;out vec4 o;
+void main(){o=vec4(texture(uT,vec2(vUV.x,vUV.y*0.5)).r,texture(uT,vec2(vUV.x,0.5+vUV.y*0.5)).r,0.0,1.0);}`);
+function unstack(bmp){
+  const w=bmp.width,h=bmp.height>>1,src=texFrom(bmp,gl.R8,gl.RED,false,false);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+  const dst=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,dst);
+  gl.texStorage2D(gl.TEXTURE_2D,Math.floor(Math.log2(Math.max(w,h)))+1,gl.RG8,w,h);
+  const fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,dst,0);
+  gl.viewport(0,0,w,h);gl.disable(gl.BLEND);gl.disable(gl.DEPTH_TEST);
+  useProg(pUnstack);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,src);gl.uniform1i(pUnstack.u("uT"),0);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.deleteFramebuffer(fb);gl.deleteTexture(src);
+  gl.bindTexture(gl.TEXTURE_2D,dst);texOpts(true,true);return dst;
+}
+// Hypsometric and bathymetric tints, indexed by the R code. This is a dark-terrain basemap, and
+// the darkness is a measured budget, not a taste: the data palette was validated against a
+// near-black surface, and its darkest colours (the purples and blues) only keep about 90% of that
+// contrast while the median of lit land sits near a luminance of 0.012. So height is carried by
+// the relief shading, and the tints only drift from a cool olive-grey to a neutral grey as they climb.
+function rampTex(M){
+  const SEA=[[-8000,"#050811"],[-5000,"#060b18"],[-3500,"#070e1e"],[-2000,"#091325"],[-1000,"#0b192d"],[-200,"#0f2236"],[0,"#132a40"]],
+        LAND=[[0,"#15191a"],[150,"#171b1a"],[400,"#1a1d1b"],[900,"#1e201d"],[1600,"#21211f"],[2600,"#222221"],[3800,"#232323"],[5200,"#252526"],[6500,"#29292b"]];
+  const at=(S,h)=>{let i=0;while(i<S.length-2&&h>S[i+1][0])i++;
+    const f=Math.max(0,Math.min(1,(h-S[i][0])/(S[i+1][0]-S[i][0]))),a=hex2rgb(S[i][1]),b=hex2rgb(S[i+1][1]);
+    return a.map((v,k)=>v+(b[k]-v)*f);};
+  const px=new Uint8Array(256*4);
+  for(let c=0;c<256;c++){const s=(c-128)/127,h=c>128?M.r_land*s*s:-M.r_sea*s*s,col=at(c>128?LAND:SEA,h);
+    px[c*4]=col[0]*255;px[c*4+1]=col[1]*255;px[c*4+2]=col[2]*255;px[c*4+3]=255;}
+  const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,256,1,0,gl.RGBA,gl.UNSIGNED_BYTE,px);texOpts(false,false);return t;
+}
+const pEarth=GL2&&prog(`#version 300 es
+in vec3 aP;uniform mat4 uMVP;out vec3 vN;void main(){vN=aP;gl_Position=uMVP*vec4(aP,1.0);}`,
+`#version 300 es
+precision highp float;
+in vec3 vN;out vec4 o;
+uniform sampler2D uElev,uRelief,uIce,uRamp;
+uniform vec3 uCam,uSun,uGrad;            // uGrad: full-scale slope, 1/companding power, dead zone
+uniform vec4 uIceA,uIceB;                // atlas offset and scale of the two ice slices being mixed
+uniform float uSea,uZero,uFade,uIceF,uIceOn,uGrat,uRel;
+const float PI=3.14159265;
+float gline(float x,float st,float fw){float d=abs(fract(x/st+0.5)-0.5)*st;return 1.0-smoothstep(fw*0.5,fw*1.5,d);}
+void main(){
+  vec3 n=normalize(vN),v=normalize(uCam-n),L=normalize(uSun);
+  float ndv=max(dot(n,v),0.0),ndl=dot(n,L),day=smoothstep(-0.22,0.50,ndl),fr=1.0-ndv;
+  vec3 plain=mix(vec3(0.031,0.043,0.078),vec3(0.055,0.075,0.125),max(ndl,0.0))+vec3(0.10,0.22,0.48)*pow(fr,3.2)*0.85;
+  // longitude jumps at the antimeridian, which would send the mip level to the floor along that
+  // line; take each derivative from whichever of two parameterisations is continuous here
+  float ua=atan(n.x,n.z)/(2.0*PI)+0.5,ub=fract(ua+0.5)-0.5,t=acos(clamp(n.y,-1.0,1.0))/PI;
+  float ax=dFdx(ua),bx=dFdx(ub),ay=dFdy(ua),by=dFdy(ub);
+  vec2 dx=vec2(abs(ax)<abs(bx)?ax:bx,dFdx(t)),dy=vec2(abs(ay)<abs(by)?ay:by,dFdy(t)),uv=vec2(ua,t);
+  vec3 e=textureGrad(uElev,uv,dx,dy).rgb;
+  vec2 gc=(textureGrad(uRelief,uv,dx,dy).rg*255.0-128.0)/127.0;
+  vec2 gr=sign(gc)*(pow(abs(gc),vec2(uGrad.y))*uGrad.x+step(0.012,abs(gc))*uGrad.z);
+  // the coast: elevation against the sea level of the date, one pixel wide at any zoom
+  float fw=max(fwidth(e.g)*0.75,0.0006);
+  float land=smoothstep(uSea-fw,uSea+fw,e.g),water=1.0-land;
+  float shelf=land*(1.0-smoothstep(uZero-fw,uZero+fw,e.g));       // dry now, sea floor today
+  vec3 cSea=texture(uRamp,vec2((min(e.r*255.0,128.0)+0.5)/256.0,0.5)).rgb;
+  vec3 cLand=texture(uRamp,vec2((max(e.r*255.0,129.0)+0.5)/256.0,0.5)).rgb;
+  vec3 cShelf=mix(vec3(0.128,0.170,0.158),vec3(0.100,0.140,0.136),clamp((uZero-e.g)*255.0/130.0,0.0,1.0));
+  vec3 alb=mix(cSea,mix(cLand,cShelf,shelf),land);
+  vec2 iuv=vec2(clamp(ua,0.001,0.999),clamp(t,0.002,0.998));
+  float sd=mix(texture(uIce,uIceA.xy+iuv*uIceA.zw).r,texture(uIce,uIceB.xy+iuv*uIceB.zw).r,uIceF)-128.0/255.0;
+  float iw=max(fwidth(sd)*0.8,0.0015),ice=smoothstep(-iw,iw,sd)*uIceOn;
+  alb=mix(alb,vec3(0.245,0.290,0.335),ice*0.94);
+  // relief, lit from the sun's own azimuth. Overhead light would flatten every range, so the
+  // obliqueness has a floor; the direction is always the real one. It is shadow-dominant: slopes
+  // facing away darken further than facing slopes brighten, which keeps the ground under its
+  // luminance budget and lets ranges read as dark creases rather than bright ridges.
+  vec3 E=normalize(vec3(n.z,0.0,-n.x)+vec3(1e-5,0.0,0.0)),N=cross(n,E);
+  vec2 lt=vec2(dot(L,E),dot(L,N));float sz=length(lt);
+  float rel=-dot(gr,lt/max(sz,1e-4))*uRel*max(sz,0.5)*mix(1.0,0.55,water)*(1.0-0.75*ice);
+  float lit=mix(0.36,0.96,day)+clamp(rel,-0.62,0.26)*(0.45+0.55*day)-min(length(gr)*1.3,0.11)*land*(1.0-ice);
+  float nh=max(dot(n,normalize(L+v)),0.0);
+  float spec=(pow(nh,80.0)*0.22+pow(nh,10.0)*0.035)*water*(1.0-ice)*day;
+  vec3 col=alb*lit+vec3(0.50,0.66,0.88)*spec;
+  col=mix(col,vec3(0.17,0.30,0.55)*(0.22+0.78*day),pow(fr,2.6)*0.62);      // air between us and the limb
+  col+=vec3(0.10,0.22,0.48)*pow(fr,4.2)*0.55*(0.25+0.75*day);
+  float latD=90.0-t*180.0,fwLat=fwidth(t)*180.0,fwLon=(abs(dx.x)+abs(dy.x))*360.0;
+  float grat=max(gline(latD,15.0,fwLat),gline(ua*360.0,15.0,fwLon)*(1.0-smoothstep(72.0,84.0,abs(latD))));
+  float eq=1.0-smoothstep(fwLat*0.5,fwLat*1.5,abs(latD));
+  col+=vec3(0.93,0.91,0.88)*(grat+eq*0.9)*uGrat*(0.35+0.65*ndv);
+  o=vec4(mix(plain,col,uFade),1.0);}`);
+
+// the limb: a shell a little larger than the globe, shaded from the view ray's closest approach
+const pAir=prog(
+`attribute vec3 aP;uniform mat4 uMVP;varying vec3 vP;void main(){vP=aP*1.16;gl_Position=uMVP*vec4(vP,1.0);}`,
+`#ifdef GL_FRAGMENT_PRECISION_HIGH
+ precision highp float;
+ #else
+ precision mediump float;
+ #endif
+ varying vec3 vP;uniform vec3 uCam,uSun;uniform float uK;
+ void main(){vec3 rd=normalize(vP-uCam);vec3 pc=uCam-rd*dot(uCam,rd);float b=length(pc),h=max(b-1.0,0.0);
+ float day=smoothstep(-0.30,0.55,dot(pc/max(b,1e-4),normalize(uSun)));
+ vec3 c=vec3(0.50,0.72,1.0)*exp(-h/0.010)*0.34+vec3(0.16,0.34,0.85)*exp(-h/0.042)*0.21;
+ gl_FragColor=vec4(c*(0.10+0.90*day)*(1.0-smoothstep(0.10,0.15,h))*uK,1.0);}`);
+
+function seaAt(age){const s=EARTH.meta&&EARTH.meta.sea;if(!s)return null;
+  const k=Math.min(s.m.length-1.001,Math.max(0,age/s.step_yr)),i=Math.floor(k),f=k-i;
+  return {m:s.m[i]+(s.m[i+1]-s.m[i])*f,sd:s.sd[i]+(s.sd[i+1]-s.sd[i])*f};}
+// PaleoMIST ends at 80 ka. Before that the ice is an analogue: the slice from the last cycle whose
+// sea level matches, taken from the build-up while the sea was falling and from the retreat while
+// it was rising. It is a stand-in, not a reconstruction, and the interface says so.
+function buildIceAnalogue(){
+  const s=EARTH.meta.sea.m,I=EARTH.meta.ice,last=I.ages[I.ages.length-1]/1000,out=new Float32Array(s.length);
+  let peak=0;for(let k=0;k<=last;k++)if(s[k]<s[peak])peak=k;
+  for(let ka=0;ka<s.length;ka++){if(ka<=last){out[ka]=ka;continue;}
+    const rising=s[Math.max(0,ka-3)]-s[Math.min(s.length-1,ka+3)]>0,lo=rising?0:peak,hi=rising?peak:last;
+    let best=lo,bd=1e9;for(let k=lo;k<=hi;k++){const d=Math.abs(s[k]-s[ka]);if(d<bd){bd=d;best=k;}}
+    out[ka]=best;}
+  return out;}
+function iceAt(age){
+  const I=EARTH.meta.ice,A=EARTH.analog,step=I.ages[1]-I.ages[0],n=I.ages.length;let a=age;
+  if(A&&age>I.ages[n-1]){const k=Math.min(A.length-1.001,age/1000),i=Math.floor(k);a=(A[i]+(A[i+1]-A[i])*(k-i))*1000;}
+  const k=Math.max(0,Math.min(n-1,a/step)),i=Math.min(n-2,Math.floor(k));
+  const tile=j=>[(j%I.cols)/I.cols,Math.floor(j/I.cols)/I.rows,1/I.cols,1/I.rows];
+  return {a:tile(i),b:tile(i+1),f:k-i};}
+function drawEarth(mvp,cam,sun){
+  const M=EARTH.meta.elev,s=seaAt(NOW),ic=EARTH.ice?iceAt(NOW):null;
+  useProg(pEarth);gl.uniformMatrix4fv(pEarth.u("uMVP"),false,mvp);
+  gl.uniform3f(pEarth.u("uCam"),cam.x,cam.y,cam.z);gl.uniform3f(pEarth.u("uSun"),sun.x,sun.y,sun.z);
+  gl.uniform3f(pEarth.u("uGrad"),M.grad0,1/M.grad_pow,M.grad_dead);
+  // a sea above today's is not drawn: +3 m at the last interglacial is below the raster's resolution
+  gl.uniform1f(pEarth.u("uSea"),(Math.min(0,s?s.m:0)-M.g_lo)/255);gl.uniform1f(pEarth.u("uZero"),-M.g_lo/255);
+  gl.uniform1f(pEarth.u("uFade"),EARTH.fade);
+  // from far out each pixel averages many slopes and the ranges wash away, so relief is stronger there
+  gl.uniform1f(pEarth.u("uRel"),14+14*Math.max(0,Math.min(1,(camDist-1.5)/1.5)));
+  gl.uniform1f(pEarth.u("uGrat"),FX.grat*0.055*Math.min(1,Math.max(0.35,(camDist-1.15)/1.2)));
+  gl.uniform1f(pEarth.u("uIceOn"),ic?1:0);
+  if(ic){gl.uniform4fv(pEarth.u("uIceA"),ic.a);gl.uniform4fv(pEarth.u("uIceB"),ic.b);gl.uniform1f(pEarth.u("uIceF"),ic.f);}
+  [["uElev",EARTH.elev],["uRelief",EARTH.relief],["uIce",EARTH.ice||EARTH.ramp],["uRamp",EARTH.ramp]].forEach(([nm,t],i)=>{
+    gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(pEarth.u(nm),i);});
+  gl.activeTexture(gl.TEXTURE0);
+  bind(pEarth,"aP",sphP,3);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,sphI);
+  gl.drawElements(gl.TRIANGLES,SPH.n,gl.UNSIGNED_SHORT,0);
+}
+// Streams in after the evidence. Phones get the 2048 px set; everything else the 4096.
+async function loadEarth(){
+  if(!GL2||!pEarth||EARTH.elev)return;
+  try{
+    if(!EARTH.meta)EARTH.meta=await (await fetch("d/earth.json"+GROUNDV)).json();
+    const phone=Math.min(screen.width,screen.height)<600,lean=navigator.deviceMemory&&navigator.deviceMemory<=2;
+    const N=(!phone&&!lean&&gl.getParameter(gl.MAX_TEXTURE_SIZE)>=4096)?EARTH.meta.sizes[0]:EARTH.meta.sizes[EARTH.meta.sizes.length-1];
+    const [eb,rb]=await Promise.all([bitmap(`d/earth-${N}.webp`+GROUNDV),bitmap(`d/relief-${N}.webp`+GROUNDV)]);
+    EARTH.ramp=rampTex(EARTH.meta.elev);
+    EARTH.elev=texFrom(eb,gl.RGB8,gl.RGB,true,true);eb.close();
+    EARTH.relief=unstack(rb);rb.close();
+    EARTH.size=N;EARTH.ready=true;
+    if(EARTH.meta.ice&&gl.getParameter(gl.MAX_TEXTURE_SIZE)>=4096){
+      const ib=await bitmap("d/ice.png"+GROUNDV);EARTH.analog=buildIceAnalogue();
+      EARTH.ice=texFrom(ib,gl.R8,gl.RED,false,false);ib.close();}
+  }catch(e){EARTH.err=String(e&&e.message||e);}
+}
 
 /* ===================== camera ===================== */
-let camLat=26,camLon=24,camDist=3.05,tgt=null,idle=0,drag=false,lx=0,ly=0,tpd=0;
+let camLat=26,camLon=24,camDist=3.05,idle=0,drag=false,lx=0,ly=0,tpd=0;
 let lastMVP=null,lastCam=V(0,0,3),DPR=1;
 const RM=matchMedia("(prefers-reduced-motion: reduce)");
 const camPos=()=>{const v=ll2v(camLat,camLon);return V(v.x*camDist,v.y*camDist,v.z*camDist);};
-cv.addEventListener("pointerdown",e=>{drag=true;lx=e.clientX;ly=e.clientY;idle=0;
+let FLY=null,FOLLOW=false,dragFar=0;      // a timed camera move; whether playback follows the selected route
+// Any real drag, wheel or pinch ends whatever is moving the camera and hands it back. A press that
+// never travels is a click, and picking owns those, so the hand-back waits for 3 px of movement.
+function handBack(){FLY=null;FOLLOW=false;FOLV=0;if(PATHFLY){PATHFLY=null;paintFlyBtn();}}
+cv.addEventListener("pointerdown",e=>{drag=true;dragFar=0;lx=e.clientX;ly=e.clientY;idle=0;
  cv.classList.add("drag");cv.setPointerCapture(e.pointerId);hideHint();});
 cv.addEventListener("pointermove",e=>{if(!drag)return;
- const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;
- camLon-=dx*0.26;camLat=Math.max(-84,Math.min(84,camLat+dy*0.26));tgt=null;idle=0;});
+ const dx=e.clientX-lx,dy=e.clientY-ly;lx=e.clientX;ly=e.clientY;idle=0;
+ if(dragFar<3){dragFar+=Math.abs(dx)+Math.abs(dy);if(dragFar<3)return;handBack();}
+ camLon-=dx*0.26;camLat=Math.max(-84,Math.min(84,camLat+dy*0.26));});
 const endDrag=()=>{drag=false;cv.classList.remove("drag");};
 cv.addEventListener("pointerup",endDrag);cv.addEventListener("pointercancel",endDrag);
-cv.addEventListener("wheel",e=>{e.preventDefault();
- camDist=Math.max(1.12,Math.min(7.5,camDist*(1+Math.sign(e.deltaY)*0.11)));tgt=null;idle=0;hideHint();},{passive:false});
+cv.addEventListener("wheel",e=>{e.preventDefault();handBack();
+ camDist=Math.max(1.12,Math.min(7.5,camDist*(1+Math.sign(e.deltaY)*0.11)));idle=0;hideHint();},{passive:false});
 cv.addEventListener("touchstart",e=>{if(e.touches.length===2)
  tpd=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);},{passive:true});
 cv.addEventListener("touchmove",e=>{if(e.touches.length===2&&tpd){
  const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
- camDist=Math.max(1.12,Math.min(7.5,camDist*tpd/d));tpd=d;tgt=null;idle=0;}},{passive:true});
-function flyTo(n,d){tgt={lat:n.lat,lon:n.lon,d:d||Math.min(camDist,2.2)};idle=0;}
+ handBack();camDist=Math.max(1.12,Math.min(7.5,camDist*tpd/d));tpd=d;idle=0;}},{passive:true});
+const angle=(a,b)=>Math.acos(Math.max(-1,Math.min(1,dot3(a,b))));
+const ease5=u=>u*u*u*(u*(u*6-15)+10);      // quintic: rest to rest, peaking at 1.9x the mean speed
+function setCam(v,d){const u=norm(v);camLat=Math.max(-84,Math.min(84,Math.asin(Math.max(-1,Math.min(1,u.y)))*180/Math.PI));
+ camLon=Math.atan2(u.x,u.z)*180/Math.PI;if(d)camDist=d;}
+// A flight along the great circle, rising on long hops so the journey is seen from above and
+// settling onto the target. Reduced motion gets the same destination as a cut.
+function flyTo(n,d){
+ const to=ll2v(n.lat,n.lon),d1=d||Math.min(camDist,2.2);idle=0;
+ if(RM.matches){FLY=null;setCam(to,d1);URLSTATE.dirty();return;}
+ const from=ll2v(camLat,camLon),ang=angle(from,to);
+ if(ang>3.0){FLY=null;setCam(to,d1);return;}           // antipodal: no single great circle to follow
+ FLY={a:from,b:to,d0:camDist,d1,t:0,dur:1.0+2.8*Math.pow(ang/Math.PI,0.75),hump:Math.max(0,ang-0.35)*0.75};}
+function stepFly(dt){
+ FLY.t=Math.min(1,FLY.t+dt/FLY.dur);const e=ease5(FLY.t);
+ setCam(slerp(FLY.a,FLY.b,e),FLY.d0+(FLY.d1-FLY.d0)*e+FLY.hump*Math.sin(Math.PI*e));
+ if(FLY.t>=1){FLY=null;URLSTATE.dirty();}}
 function project(v,mvp,w,h){const x=v.x,y=v.y,z=v.z;
  const cx=mvp[0]*x+mvp[4]*y+mvp[8]*z+mvp[12],cy=mvp[1]*x+mvp[5]*y+mvp[9]*z+mvp[13],
        cw=mvp[3]*x+mvp[7]*y+mvp[11]*z+mvp[15];
@@ -743,10 +980,12 @@ const pPoint=prog(
 `attribute vec3 aP;attribute float aBP;attribute float aOn;
  uniform mat4 uMVP;uniform vec3 uCam;uniform float uPX,uNow,uMode,uWin,uAlpha,uSize;
  uniform vec2 uRange;
- varying float vA;
+ varying float vA,vFog;
  void main(){
    vec3 n=normalize(aP);
-   float face=smoothstep(-0.02,0.26,dot(n,normalize(uCam-aP)));
+   float ndv=dot(n,normalize(uCam-aP));
+   float face=smoothstep(-0.02,0.26,ndv);
+   vFog=1.0-smoothstep(0.16,0.66,ndv);             // air thickens toward the limb, so far marks recede
    float t;
    if(aBP<=0.5) t=1.0;
    else if(uMode<0.5) t=clamp((aBP-uNow)/max(aBP*0.02,200.0),0.0,1.0);
@@ -755,20 +994,20 @@ const pPoint=prog(
    vA=aOn*face*t*uAlpha*inr;
    vec4 mv=uMVP*vec4(aP,1.0);gl_Position=mv;
    gl_PointSize=max(1.0,(uSize*uPX)/max(mv.w,0.35));}`,
-`precision mediump float;varying float vA;uniform vec3 uCol;
+`precision mediump float;varying float vA,vFog;uniform vec3 uCol;
  void main(){if(vA<=0.004)discard;
   vec2 d=gl_PointCoord-0.5;float r=length(d)*2.0;if(r>1.0)discard;
   float core=1.0-smoothstep(0.0,1.0,r);
-  gl_FragColor=vec4(uCol,core*core*vA);}`);
+  gl_FragColor=vec4(mix(uCol,vec3(0.34,0.46,0.66),vFog*0.40),core*core*vA*(1.0-0.30*vFog));}`);
 
 const pLine=prog(
 `attribute vec3 aP;attribute float aOn;uniform mat4 uMVP;uniform vec3 uCam;uniform float uAlpha;
- varying float vA;
- void main(){vec3 n=normalize(aP);
-  float face=smoothstep(-0.02,0.26,dot(n,normalize(uCam-aP)));
+ varying float vA,vFog;
+ void main(){vec3 n=normalize(aP);float ndv=dot(n,normalize(uCam-aP));
+  float face=smoothstep(-0.02,0.26,ndv);vFog=1.0-smoothstep(0.16,0.66,ndv);
   vA=aOn*face*uAlpha;gl_Position=uMVP*vec4(aP,1.0);}`,
-`precision mediump float;varying float vA;uniform vec3 uCol;
- void main(){if(vA<=0.004)discard;gl_FragColor=vec4(uCol,vA*0.62);}`);
+`precision mediump float;varying float vA,vFog;uniform vec3 uCol;
+ void main(){if(vA<=0.004)discard;gl_FragColor=vec4(mix(uCol,vec3(0.34,0.46,0.66),vFog*0.40),vA*0.62*(1.0-0.30*vFog));}`);
 
 const REC=15;
 function parsePoints(ab,L){
@@ -816,6 +1055,27 @@ async function loadLayer(L){
     L.ready=true;
   }catch(e){ L.err=String(e&&e.message||e); }
   L.loading=false; paintLayers(); buildCoverage();
+}
+// Today's coastline as thin linework (Natural Earth 10m, the routes format), so the modern
+// outline stays legible while the paleo-coast moves underneath it.
+const COAST={ready:false,n:0};
+async function loadCoast(){
+  if(COAST.ready||!GL2)return;
+  try{
+    const bs=atob((await (await fetch("d/coast.bin.txt"+GROUNDV)).text()).trim()),u8=new Uint8Array(bs.length);
+    for(let i=0;i<bs.length;i++)u8[i]=bs.charCodeAt(i);
+    const d=parseLines(u8.buffer,{r:1.0012});
+    COAST.n=d.n;COAST.bufP=buf(d.pos);COAST.bufOn=buf(d.on);COAST.ready=true;
+  }catch(e){}
+}
+function drawCoast(mvp,cam){
+  if(!COAST.ready||EARTH.fade<=0)return;
+  useProg(pLine);
+  gl.uniformMatrix4fv(pLine.u("uMVP"),false,mvp);gl.uniform3f(pLine.u("uCam"),cam.x,cam.y,cam.z);
+  // far out, many segments share a pixel and the line would add up to a bright edge
+  gl.uniform3f(pLine.u("uCol"),0.93,0.91,0.88);gl.uniform1f(pLine.u("uAlpha"),(0.46-0.22*Math.max(0,Math.min(1,(camDist-1.5)/1.3)))*EARTH.fade);
+  bind(pLine,"aP",COAST.bufP,3);bind(pLine,"aOn",COAST.bufOn,1);
+  gl.drawArrays(gl.LINES,0,COAST.n);
 }
 async function loadText(L){
   if(L.txt||L.txtBusy)return L.txt;
@@ -978,6 +1238,11 @@ async function buildTree(){
   const cnt=n=>{n.desc=n.kids.reduce((s,k)=>s+cnt(k),0)+1;return n.desc;};
   NODES.filter(n=>!n.parent).forEach(cnt);
   NODES.forEach(n=>{n.lat=POSMODE==="c"?n.clat:n.olat; n.lon=POSMODE==="c"?n.clon:n.olon; n.v=ll2v(n.lat,n.lon);});
+  // An arc grows from its parent's date to its own. Where the two are the same date (parent and
+  // child share one oldest sample) the arc gets a 50-year window, placed after the parent's own,
+  // so a chain of such clades grows link by link and not all at once. teff is that drawing date.
+  const eff=(n,t)=>{n.teff=t;n.kids.forEach(k=>eff(k,Math.min(k.bp,t-50)));};
+  NODES.filter(n=>!n.parent).forEach(n=>eff(n,n.bp));
   EDGES=NODES.filter(n=>n.parent);
   const NV=EDGES.length*ARCP;
   const P=new Float32Array(NV*3),S=new Float32Array(NV),A=new Float32Array(NV*2),
@@ -986,9 +1251,9 @@ async function buildTree(){
   EDGES.forEach((e,ei)=>{
     const a=e.parent.v,b=e.v;
     const ang=Math.acos(Math.max(-1,Math.min(1,dot3(a,b))));
-    const lift=0.02+0.26*(ang/Math.PI);
+    const lift=0.02+0.26*(ang/Math.PI);e.lift=lift;
     const rgb=hex2rgb(e.col);
-    let pa=e.parent.bp, pb=e.bp; if(pb>=pa)pb=pa-50;
+    const pa=e.parent.teff, pb=e.teff;
     const pts=[];
     for(let i=0;i<ARCP;i++){
       const s=i/(ARCP-1),k=ei*ARCP+i;
@@ -1009,12 +1274,12 @@ async function buildTree(){
   refreshDyn();
 }
 function ancestry(n){const o=[];let c=n;while(c){o.unshift(c);c=c.parent;}return o;}
-let GOFF=new Set();
+let GOFF=new Set(),ROUTE=null;   // ROUTE: ids on the selected clade's path from its root
 function refreshDyn(){
   if(!ARC)return;
-  const path=SELN?new Set(ancestry(SELN).map(n=>n.id)):null;
+  const path=ROUTE=SELN?new Set(ancestry(SELN).map(n=>n.id)):null;
   EDGES.forEach((e,ei)=>{
-    const on=!path?1:(path.has(e.id)?1:0.10);
+    const on=!path?1:(path.has(e.id)?2:0.10);      // 2 = on the selected route: drawn hot
     const vis=(e.gidx<0||!GOFF.has(e.gidx))?1:0;
     for(let i=0;i<ARCP;i++){const k=(ei*ARCP+i)*2;ARC.Dcpu[k]=on;ARC.Dcpu[k+1]=vis;}
     const c0=e.li;
@@ -1026,24 +1291,25 @@ function refreshDyn(){
 const pArc=prog(
 `attribute vec3 aP;attribute float aS;attribute vec2 aAge;attribute vec3 aCol;attribute vec2 aDyn;
  uniform mat4 uMVP;uniform vec3 uCam;uniform float uNow,uPX;
- varying vec3 vCol;varying float vA,vS,vFrac,vSel;
+ varying vec3 vCol;varying float vA,vS,vFrac,vSel,vHot;
  void main(){
    float p=aAge.x,c=aAge.y;
    float frac=clamp((p-uNow)/max(p-c,1.0),0.0,1.0);
    vec3 n=normalize(aP);
    float face=smoothstep(-0.28,0.14,dot(n,normalize(uCam-aP)));
-   vSel=aDyn.x; vA=aDyn.y*face*aDyn.x*step(aS,frac);
+   float on=min(aDyn.x,1.0);vHot=step(1.5,aDyn.x);
+   vSel=on; vA=aDyn.y*face*on*step(aS,frac);
    vCol=aCol;vS=aS;vFrac=frac;
    gl_Position=uMVP*vec4(aP,1.0);
-   gl_PointSize=max(1.0,(3.4*uPX)/max(gl_Position.w,0.4));}`,
-`precision mediump float;varying vec3 vCol;varying float vA,vS,vFrac,vSel;
+   gl_PointSize=max(1.0,((3.4+2.4*vHot)*uPX)/max(gl_Position.w,0.4));}`,
+`precision mediump float;varying vec3 vCol;varying float vA,vS,vFrac,vSel,vHot;
  uniform float uT,uMode;
  void main(){
    if(vA<=0.004)discard;
    float a=vA;
    if(uMode>0.5){vec2 d=gl_PointCoord-0.5;float r=length(d)*2.0;if(r>1.0)discard;
-     a*=smoothstep(0.80,1.0,fract(vS*9.0-uT*0.5))*(1.0-r*r)*1.9;}
-   else{a*=0.30*(1.0+2.0*vSel);float d=abs(vFrac-vS);a+=exp(-d*d*2400.0)*1.5*vSel;}
+     a*=smoothstep(0.80,1.0,fract(vS*9.0-uT*(0.5+0.35*vHot)))*(1.0-r*r)*(1.9+1.5*vHot);}
+   else{a*=0.30*(1.0+2.0*vSel)*(1.0+0.45*vHot);float d=abs(vFrac-vS);a+=exp(-d*d*2400.0)*1.5*vSel;}
    gl_FragColor=vec4(vCol*(0.82+0.55*a),a);}`);
 function drawTree(mvp,cam,PX){
   if(!ARC)return;
@@ -1059,6 +1325,70 @@ function drawTree(mvp,cam,PX){
   bind(pArc,"aP",ARC.P,3);bind(pArc,"aS",ARC.S,1);bind(pArc,"aAge",ARC.A,2);
   bind(pArc,"aCol",ARC.C,3);bind(pArc,"aDyn",ARC.D,2);
   gl.drawArrays(gl.POINTS,0,ARC.n);
+}
+
+/* ===================== route marks: rings on the surface, a comet head where an arc is growing ===================== */
+const pRing=prog(
+`attribute vec3 aP;attribute vec2 aUV;attribute vec4 aCol;uniform mat4 uMVP;uniform vec3 uCam;
+ varying vec2 vUV;varying vec4 vCol;varying float vF;
+ void main(){vUV=aUV;vCol=aCol;vF=smoothstep(0.02,0.30,dot(normalize(aP),normalize(uCam-aP)));gl_Position=uMVP*vec4(aP,1.0);}`,
+`precision mediump float;varying vec2 vUV;varying vec4 vCol;varying float vF;uniform float uT,uPulse;
+ void main(){float r=length(vUV);if(r>1.0)discard;
+  float ring=smoothstep(0.50,0.555,r)*(1.0-smoothstep(0.625,0.68,r));
+  float p=fract(uT*0.42+vCol.a*5.0),pulse=smoothstep(p-0.10,p,r)*(1.0-smoothstep(p,p+0.035,r))*(1.0-p)*(1.0-p);
+  gl_FragColor=vec4(vCol.rgb,(ring*0.62+pulse*0.55*uPulse+(1.0-smoothstep(0.0,0.55,r))*0.07)*vF);}`);
+const pHead=prog(
+`attribute vec3 aP;attribute vec4 aCol;uniform mat4 uMVP;uniform vec3 uCam;uniform float uPX;varying vec4 vCol;
+ void main(){float f=smoothstep(-0.20,0.16,dot(normalize(aP),normalize(uCam-aP)));
+  vCol=vec4(aCol.rgb,f);gl_Position=uMVP*vec4(aP,1.0);gl_PointSize=max(2.0,aCol.a*uPX/max(gl_Position.w,0.4));}`,
+`precision mediump float;varying vec4 vCol;
+ void main(){vec2 d=gl_PointCoord-0.5;float r=length(d)*2.0;if(r>1.0)discard;
+  float a=exp(-r*r*9.0)+0.35*exp(-r*r*2.2)*(1.0-r);
+  gl_FragColor=vec4(mix(vCol.rgb,vec3(1.0),exp(-r*r*22.0)*0.75),a*vCol.a);}`);
+const RINGMAX=48,HEADMAX=160,RINGV=new Float32Array(RINGMAX*54),HEADV=new Float32Array(HEADMAX*7);
+const QUAD=[[-1,-1],[1,-1],[1,1],[-1,-1],[1,1],[-1,1]];
+const ringB=dynbuf(RINGV),headB=dynbuf(HEADV);
+function attrI(p,n,size,stride,off){const l=p.a(n);if(l<0)return;gl.enableVertexAttribArray(l);
+  gl.vertexAttribPointer(l,size,gl.FLOAT,false,stride*4,off*4);}
+// where edge e's arc has grown to at NOW: null before it starts, its far end once complete
+function arcTip(e){
+  const pa=e.parent.teff,f=(pa-NOW)/Math.max(pa-e.teff,1);if(f<=0)return null;
+  const s=Math.min(1,f),m=slerp(e.parent.v,e.v,s),h=1.004+e.lift*Math.sin(Math.PI*s);
+  return {v:m,p:V(m.x*h,m.y*h,m.z*h),growing:f<1};}
+function drawMarks(mvp,cam,PX){
+  let nr=0,nh=0;
+  if(SELN){
+    const chain=ancestry(SELN),s=0.026*Math.max(0.12,camDist-1),placed=[];
+    chain.forEach((n,i)=>{
+      if(n.bp<NOW||nr>=RINGMAX)return;
+      if(placed.some(q=>chord(q,n.v)<s*0.9))return;          // waypoints that share a spot share a ring
+      placed.push(n.v);
+      const c=n.v,rgb=hex2rgb(n.col);let E=V(c.z,0,-c.x);if(Math.hypot(E.x,E.z)<1e-4)E=V(1,0,0);
+      E=norm(E);const N=cross(c,E);
+      QUAD.forEach(([u,v],j)=>{const k=(nr*6+j)*9;            // a quad lying in the tangent plane
+        RINGV[k]=c.x*1.0025+(E.x*u+N.x*v)*s;RINGV[k+1]=c.y*1.0025+(E.y*u+N.y*v)*s;RINGV[k+2]=c.z*1.0025+(E.z*u+N.z*v)*s;
+        RINGV[k+3]=u;RINGV[k+4]=v;RINGV[k+5]=rgb[0];RINGV[k+6]=rgb[1];RINGV[k+7]=rgb[2];RINGV[k+8]=i/chain.length;});
+      nr++;});
+  }
+  for(const e of EDGES){
+    if(nh>=HEADMAX)break;
+    if(e.gidx>=0&&GOFF.has(e.gidx))continue;
+    const hot=!!(ROUTE&&ROUTE.has(e.id));if(ROUTE&&!hot)continue;
+    const t=arcTip(e);if(!t||!t.growing)continue;
+    const rgb=hex2rgb(e.col),k=nh*7;
+    HEADV[k]=t.p.x;HEADV[k+1]=t.p.y;HEADV[k+2]=t.p.z;HEADV[k+3]=rgb[0];HEADV[k+4]=rgb[1];HEADV[k+5]=rgb[2];
+    HEADV[k+6]=hot?30*(RM.matches?1:1+0.16*Math.sin(clock*5.2)):11;nh++;
+  }
+  if(nr){gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);      // rings overlap; added together they would burn out
+    useProg(pRing);gl.uniformMatrix4fv(pRing.u("uMVP"),false,mvp);gl.uniform3f(pRing.u("uCam"),cam.x,cam.y,cam.z);
+    gl.uniform1f(pRing.u("uT"),clock);gl.uniform1f(pRing.u("uPulse"),RM.matches?0:1);
+    gl.bindBuffer(gl.ARRAY_BUFFER,ringB);gl.bufferSubData(gl.ARRAY_BUFFER,0,RINGV.subarray(0,nr*54));
+    attrI(pRing,"aP",3,9,0);attrI(pRing,"aUV",2,9,3);attrI(pRing,"aCol",4,9,5);gl.drawArrays(gl.TRIANGLES,0,nr*6);
+    gl.blendFunc(gl.SRC_ALPHA,gl.ONE);}
+  if(nh){useProg(pHead);gl.uniformMatrix4fv(pHead.u("uMVP"),false,mvp);gl.uniform3f(pHead.u("uCam"),cam.x,cam.y,cam.z);
+    gl.uniform1f(pHead.u("uPX"),PX);
+    gl.bindBuffer(gl.ARRAY_BUFFER,headB);gl.bufferSubData(gl.ARRAY_BUFFER,0,HEADV.subarray(0,nh*7));
+    attrI(pHead,"aP",3,7,0);attrI(pHead,"aCol",4,7,3);gl.drawArrays(gl.POINTS,0,nh);}
 }
 </script>
 <script>
@@ -1146,16 +1476,30 @@ function setTime(p,fromSlider){
   $("epoch").textContent=present?"":epochOf(NOW);
   const ph=$("playhead");ph.style.left=(PT*100).toFixed(3)+"%";ph.classList.toggle("flip",PT>0.86);
   $("phlabel").textContent=present?"now":a;
-  scrub.setAttribute("aria-valuetext",present?"Present day":a+" years before present, "+epochOf(NOW));
+  const sea=paintSea();
+  scrub.setAttribute("aria-valuetext",(present?"Present day":a+" years before present, "+epochOf(NOW))+(sea?", "+sea:""));
   URLSTATE.dirty();
 }
-scrub.addEventListener("input",()=>{playing=false;paintPlay();setTime(+scrub.value/1000,true);});
+// The sea level the coastline is drawn at, from the published curve. Returns the spoken form.
+function paintSea(){
+  const s=seaAt(NOW),el=$("sea");if(!s){el.hidden=true;return "";}
+  const m=Math.round(s.m),sd=Math.round(s.sd);
+  el.hidden=false;$("seaval").textContent=(m<0?"−"+(-m):m>0?"+"+m:"0")+" m";
+  const said=m===0?"sea level as today":`sea level ${Math.abs(m)} metres ${m<0?"below":"above"} today`;
+  el.title=`Global mean sea level ${m===0?"as":Math.abs(m)+" m "+(m<0?"below":"above")} today, ±${sd} m (1σ). `+
+    `Spratt & Lisiecki 2016. The coastline is today's sea floor cut at this level.`+
+    (m>0?" A sea above today's is below the raster's resolution and is not drawn.":"")+
+    (EARTH.meta.ice&&NOW>EARTH.meta.ice.ages[EARTH.meta.ice.ages.length-1]?" Ice before 80,000 BP is an analogue chosen by sea level, not a reconstruction.":"");
+  return said;
+}
+scrub.addEventListener("input",()=>{playing=false;FOLLOW=false;paintPlay();setTime(+scrub.value/1000,true);});
 (function(){const marks=[300000,100000,50000,20000,10000,5000,2000,1000,0];
  $("ticks").innerHTML=marks.map(m=>{const pc=(age2p(m)*100).toFixed(2);
   const l=m===0?"now":(m/1000)+"k";return `<i style="left:${pc}%" data-m="${m}">${l}</i>`;}).join("");})();
 function paintPlay(){const b=$("play");b.setAttribute("aria-pressed",String(playing));
   b.innerHTML=playing?ICO.pause:ICO.play;b.title=playing?"Pause (space)":"Play (space)";b.setAttribute("aria-label",playing?"Pause":"Play");}
-function togglePlay(){if(!playing&&PT>=0.999)setTime(0);playing=!playing;paintPlay();}
+function togglePlay(){if(!playing&&PT>=0.999)setTime(0);playing=!playing;paintPlay();
+  if(playing){if(PATHFLY){PATHFLY=null;paintFlyBtn();}FOLLOW=!!SELN;}}   // playing a selected lineage: the camera keeps its growing tip in view
 $("play").onclick=togglePlay;
 $("rewind").onclick=()=>{setTime(0);playing=false;paintPlay();};
 $("speed").onchange=e=>{speed=+e.target.value;};
@@ -1370,7 +1714,7 @@ function pathFocus(hops,n){
   return {lat:Math.asin(y/l)*180/Math.PI,lon:Math.atan2(x/l,z/l)*180/Math.PI};
 }
 function selectNode(n){
-  SELN=n;SELREC=null;PATHFLY=null;refreshDyn();
+  SELN=n;SELREC=null;PATHFLY=null;FOLLOW=!!n&&playing;refreshDyn();
   if(LINFILTER){refreshAllLayers();buildStrata();}
   paintSelection();paintLayers();
   if(n){const hops=pathHops();flyTo(pathFocus(hops,n),pathDist(hops));reveal("selection");}
@@ -1399,7 +1743,7 @@ function paintDossier(){
        <button class="btn" id="carriers" aria-pressed="${LINFILTER}" title="Show only genomes that carry this clade or one of its subclades">${ICO.filter} Only carriers</button>
        <button class="btn" id="sellink">${ICO.link} Copy link</button></div></div>`;
   d.querySelectorAll(".chain button").forEach(s=>s.onclick=()=>selectNode(NODES[+s.dataset.n]));
-  $("flypath").onclick=()=>{if(PATHFLY)PATHFLY=null;else{const hops=pathHops();if(hops.length>1){PATHFLY={hops,i:0,t:0};playing=false;paintPlay();}}paintFlyBtn();};
+  $("flypath").onclick=()=>{if(PATHFLY)PATHFLY=null;else startPathFly();paintFlyBtn();};
   paintFlyBtn();
   $("carriers").onclick=()=>setCarriers(!LINFILTER);
   $("sellink").onclick=e=>{URLSTATE.write();copyText(location.href,e.currentTarget,"Link copied");};
@@ -1576,10 +1920,21 @@ function paintQuery(){
 function paintProv(){
   $("prov").innerHTML=LAYERS.map(L=>`<div class="srcc" style="--c:${L.c}"><div class="h"><b>${L.name}</b><span class="lic">${L.lic}</span></div>
      <p>${L.src}. ${L.note}</p><a href="${L.url}" target="_blank" rel="noopener">${L.url.replace(/^https?:\/\//,"")}</a></div>`).join("")+
-   `<div class="srcc" style="--c:#8E97B2"><div class="h"><b>Land outlines</b><span class="lic">public domain</span></div>
-     <p>Natural Earth 110m, sampled at 48,000 uniform points.</p><a href="https://www.naturalearthdata.com" target="_blank" rel="noopener">naturalearthdata.com</a></div>`;
+   GROUND.map(g=>`<div class="srcc" id="src-${g.id}" style="--c:#8E97B2"><div class="h"><b>${g.name}</b><span class="lic">${g.lic}</span></div>
+     <p>${g.note}</p><a href="${g.url}" target="_blank" rel="noopener">${g.url.replace(/^https?:\/\//,"")}</a></div>`).join("");
 }
+/* the ground the evidence sits on: not evidence itself, but it has sources and they have terms */
+const GROUND=[
+ {id:"terrain",name:"Terrain & sea floor",lic:"US public domain",url:"https://doi.org/10.25921/fd45-gt74",
+  note:"ETOPO 2022, 60 arc-second surface elevation, NOAA NCEI. <b>Today's topography at every date</b>: no rebound, no tectonics, no sediment."},
+ {id:"sea",name:"Sea level",lic:"cite the paper",url:"https://doi.org/10.5194/cp-12-1079-2016",
+  note:"Spratt & Lisiecki 2016, a stack of seven reconstructions. Global mean, ±5 to 16\u00a0m (1σ). <b>The coastline is today's sea floor cut at this level</b>, so it is a sketch near former ice, where the land itself moved."},
+ {id:"ice",name:"Ice sheets",lic:"CC BY 4.0",url:"https://doi.org/10.1594/PANGAEA.905800",
+  note:"PaleoMIST 1.0 margins, Gowan et al. 2021, every 2,500\u00a0years back to 80,000\u00a0BP. <b>Before that the ice is an analogue</b> picked from the last cycle by sea level, not a reconstruction. Mountain glaciers outside its four ice sheets are not drawn."},
+ {id:"coast",name:"Coastline, lakes & land mask",lic:"public domain",url:"https://www.naturalearthdata.com",
+  note:"Natural Earth 10m: the thin modern outline, present-day lakes at every date, and the land mask that keeps dry ground below sea level from flooding. The dotted globe shown while loading is Natural Earth 110m at 48,000 uniform points."}];
 $("aboutguide").onclick=()=>showVeil("guide");
+$("sea").onclick=()=>{reveal("sources");const c=$("src-sea");if(c)c.scrollIntoView({block:"center"});};
 
 /* ===================== coverage chart ===================== */
 const COVB=100,COVMAX=50000;
@@ -1745,62 +2100,293 @@ function paintLabels(mvp,w,h,camv){
     d.innerHTML=`${esc(t[0])}${t[1]?` <i>${esc(t[1].replace(")",""))}</i>`:""}`;});
 }
 
+/* ===================== post: multisampled scene, bloom, spotlight, dither =====================
+   WebGL2 only. The scene is drawn into a 4x multisampled buffer and resolved. Whatever is bright
+   is pulled out at quarter size, blurred at quarter and eighth size and added back; on a ground
+   this dark, bright means the data and the limb. The last pass also lays a soft spotlight over a
+   selected route, a faint vignette centred on the globe, and a dither that keeps the dark
+   gradients from banding. If frames run long, quality steps down: see governor().          */
+const QUAL={level:3,msaa:true,bloom:true,dpr:2,pin:null,ema:0,slow:0};
+function setQual(l){QUAL.level=l;QUAL.msaa=l>=3;QUAL.bloom=l>=2;QUAL.dpr=l>=2?2:l===1?1.5:1;}
+let BOOTED=false,GPUMS=0;
+// What a frame costs the GPU, where the browser will say (one timer query in flight at a time).
+// It is the honest signal: a 30 Hz display or a throttled tab stretches the gap between frames
+// without the GPU being short of anything.
+const TQ=GL2&&gl.getExtension("EXT_disjoint_timer_query_webgl2");
+let tqQ=null,tqOpen=false;
+function gpuBegin(){
+  if(!TQ)return;
+  if(tqQ&&!tqOpen&&gl.getQueryParameter(tqQ,gl.QUERY_RESULT_AVAILABLE)){
+    if(!gl.getParameter(TQ.GPU_DISJOINT_EXT)){const ms=gl.getQueryParameter(tqQ,gl.QUERY_RESULT)/1e6;GPUMS=GPUMS?GPUMS*0.9+ms*0.1:ms;}
+    gl.deleteQuery(tqQ);tqQ=null;}
+  if(!tqQ){tqQ=gl.createQuery();gl.beginQuery(TQ.TIME_ELAPSED_EXT,tqQ);tqOpen=true;}
+}
+function gpuEnd(){if(tqOpen){gl.endQuery(TQ.TIME_ELAPSED_EXT);tqOpen=false;}}
+function governor(raw){
+  if(QUAL.pin!=null||!BOOTED||document.hidden||raw<=0||raw>0.25)return;      // stalls are loading or a hidden tab, not the GPU
+  QUAL.ema=QUAL.ema?QUAL.ema*0.95+raw*0.05:raw;
+  // over budget: more than 11 ms of GPU per frame (two thirds of a 60 Hz frame, the rest is the
+  // compositor's), or with no GPU timer, a frame rate under about 28
+  const over=GPUMS>0?GPUMS>11:QUAL.ema>0.036;
+  QUAL.slow=over?QUAL.slow+raw:Math.max(0,QUAL.slow-raw*2);
+  if(QUAL.slow>2.5&&QUAL.level>0){setQual(QUAL.level-1);QUAL.slow=0;QUAL.ema=0;GPUMS=0;}
+}
+const POST={ok:false,w:0,h:0,ms:-1};
+const pBright=GL2&&prog(TRI,`#version 300 es
+precision highp float;uniform sampler2D uT;uniform vec2 uPx;in vec2 vUV;out vec4 o;
+vec3 bp(vec2 uv){vec3 c=texture(uT,uv).rgb;return c*smoothstep(0.55,0.95,max(c.r,max(c.g,c.b)));}
+void main(){o=vec4((bp(vUV+uPx*vec2(-1,-1))+bp(vUV+uPx*vec2(1,-1))+bp(vUV+uPx*vec2(-1,1))+bp(vUV+uPx*vec2(1,1)))*0.25,1.0);}`);
+const pBlur=GL2&&prog(TRI,`#version 300 es
+precision highp float;uniform sampler2D uT;uniform vec2 uDir;in vec2 vUV;out vec4 o;
+void main(){vec3 c=texture(uT,vUV).rgb*0.2270270;
+ c+=(texture(uT,vUV+uDir*1.3846154).rgb+texture(uT,vUV-uDir*1.3846154).rgb)*0.3162162;
+ c+=(texture(uT,vUV+uDir*3.2307692).rgb+texture(uT,vUV-uDir*3.2307692).rgb)*0.0702703;o=vec4(c,1.0);}`);
+const pComp=GL2&&prog(TRI,`#version 300 es
+precision highp float;uniform sampler2D uScene,uB1,uB2;uniform vec2 uPx,uCtr,uAsp;uniform vec4 uSpot;
+uniform float uBloom,uFxaa,uVig;in vec2 vUV;out vec4 o;
+const vec3 LW=vec3(0.299,0.587,0.114);
+vec3 fxaa(vec2 uv){                                   // used only when multisampling is off
+ vec3 m=texture(uScene,uv).rgb;
+ float lnw=dot(texture(uScene,uv+vec2(-1,-1)*uPx).rgb,LW),lne=dot(texture(uScene,uv+vec2(1,-1)*uPx).rgb,LW),
+       lsw=dot(texture(uScene,uv+vec2(-1,1)*uPx).rgb,LW),lse=dot(texture(uScene,uv+vec2(1,1)*uPx).rgb,LW),lm=dot(m,LW);
+ float lo=min(lm,min(min(lnw,lne),min(lsw,lse))),hi=max(lm,max(max(lnw,lne),max(lsw,lse)));
+ if(hi-lo<max(0.0312,hi*0.125))return m;
+ vec2 dir=vec2(-((lnw+lne)-(lsw+lse)),(lnw+lsw)-(lne+lse));
+ float red=max((lnw+lne+lsw+lse)*0.03125,0.0078125);
+ dir=clamp(dir/(min(abs(dir.x),abs(dir.y))+red),-8.0,8.0)*uPx;
+ vec3 a=0.5*(texture(uScene,uv+dir*(1.0/3.0-0.5)).rgb+texture(uScene,uv+dir*(2.0/3.0-0.5)).rgb);
+ vec3 b=a*0.5+0.25*(texture(uScene,uv-dir*0.5).rgb+texture(uScene,uv+dir*0.5).rgb);
+ float lb=dot(b,LW);return (lb<lo||lb>hi)?a:b;}
+float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
+void main(){
+ vec3 c=uFxaa>0.5?fxaa(vUV):texture(uScene,vUV).rgb;
+ c+=(texture(uB1,vUV).rgb*0.55+texture(uB2,vUV).rgb*0.70)*uBloom;
+ c*=1.0-uVig*smoothstep(0.42,1.10,length((vUV-uCtr)*uAsp));
+ float s=length((vUV-uSpot.xy)*uAsp);
+ c*=mix(1.0,0.66+0.34*(1.0-smoothstep(uSpot.z,uSpot.z*2.0+0.08,s)),uSpot.w);
+ c+=(hash(gl_FragCoord.xy)-0.5)*(1.6/255.0);
+ o=vec4(c,1.0);}`);
+function rt(w,h){const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA8,w,h);
+  texOpts(false,false);const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);return {t,f,w,h};}
+function postSize(w,h){
+  const ms=QUAL.msaa?Math.min(4,gl.getParameter(gl.MAX_SAMPLES)):0;
+  if(POST.w===w&&POST.h===h&&POST.ms===ms)return POST.ok;
+  for(const k of ["scene","a4","b4","a8","b8"])if(POST[k]){gl.deleteTexture(POST[k].t);gl.deleteFramebuffer(POST[k].f);}
+  for(const k of ["depth","msColor","msDepth"])if(POST[k]){gl.deleteRenderbuffer(POST[k]);POST[k]=null;}
+  if(POST.msFbo){gl.deleteFramebuffer(POST.msFbo);POST.msFbo=null;}
+  POST.w=w;POST.h=h;POST.ms=ms;
+  const rb=(samples,fmt)=>{const r=gl.createRenderbuffer();gl.bindRenderbuffer(gl.RENDERBUFFER,r);
+    samples>1?gl.renderbufferStorageMultisample(gl.RENDERBUFFER,samples,fmt,w,h):gl.renderbufferStorage(gl.RENDERBUFFER,fmt,w,h);return r;};
+  POST.scene=rt(w,h);let ok=true;
+  if(ms>1){
+    POST.msColor=rb(ms,gl.RGBA8);POST.msDepth=rb(ms,gl.DEPTH_COMPONENT24);
+    POST.msFbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,POST.msFbo);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.RENDERBUFFER,POST.msColor);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,POST.msDepth);
+  }else{
+    POST.depth=rb(0,gl.DEPTH_COMPONENT24);gl.bindFramebuffer(gl.FRAMEBUFFER,POST.scene.f);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,POST.depth);
+  }
+  ok=gl.checkFramebufferStatus(gl.FRAMEBUFFER)===gl.FRAMEBUFFER_COMPLETE;
+  const w4=Math.max(2,w>>2),h4=Math.max(2,h>>2),w8=Math.max(2,w>>3),h8=Math.max(2,h>>3);
+  POST.a4=rt(w4,h4);POST.b4=rt(w4,h4);POST.a8=rt(w8,h8);POST.b8=rt(w8,h8);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+  return POST.ok=ok;
+}
+function postDraw(w,h,ctr,spot){
+  if(POST.msFbo){gl.bindFramebuffer(gl.READ_FRAMEBUFFER,POST.msFbo);gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER,POST.scene.f);
+    gl.blitFramebuffer(0,0,w,h,0,0,w,h,gl.COLOR_BUFFER_BIT,gl.NEAREST);}
+  gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);gl.activeTexture(gl.TEXTURE0);
+  const pass=d=>{gl.bindFramebuffer(gl.FRAMEBUFFER,d.f);gl.viewport(0,0,d.w,d.h);gl.drawArrays(gl.TRIANGLES,0,3);};
+  const A4=POST.a4,B4=POST.b4,A8=POST.a8,B8=POST.b8;
+  if(QUAL.bloom){
+    useProg(pBright);gl.bindTexture(gl.TEXTURE_2D,POST.scene.t);gl.uniform1i(pBright.u("uT"),0);
+    gl.uniform2f(pBright.u("uPx"),1/w,1/h);pass(A4);
+    useProg(pBlur);gl.uniform1i(pBlur.u("uT"),0);
+    const blur=(src,dst,x,y)=>{gl.bindTexture(gl.TEXTURE_2D,src.t);gl.uniform2f(pBlur.u("uDir"),x,y);pass(dst);};
+    blur(A4,B4,1/A4.w,0);blur(B4,A4,0,1/A4.h);
+    blur(A4,A8,0,0);                                   // no direction: a straight 2:1 reduction
+    blur(A8,B8,1/A8.w,0);blur(B8,A8,0,1/A8.h);
+  }
+  useProg(pComp);
+  [["uScene",POST.scene.t],["uB1",QUAL.bloom?A4.t:POST.scene.t],["uB2",QUAL.bloom?A8.t:POST.scene.t]].forEach(([nm,t],i)=>{
+    gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(pComp.u(nm),i);});
+  gl.activeTexture(gl.TEXTURE0);
+  gl.uniform2f(pComp.u("uPx"),1/w,1/h);gl.uniform2f(pComp.u("uAsp"),w/h,1);gl.uniform2f(pComp.u("uCtr"),ctr[0],ctr[1]);
+  gl.uniform4f(pComp.u("uSpot"),spot[0],spot[1],spot[2],spot[3]);
+  gl.uniform1f(pComp.u("uBloom"),QUAL.bloom?0.62:0);gl.uniform1f(pComp.u("uFxaa"),(POST.msFbo||!FX.aa)?0:1);gl.uniform1f(pComp.u("uVig"),0.20*FX.vig);
+  gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);gl.drawArrays(gl.TRIANGLES,0,3);
+  gl.enable(gl.BLEND);
+}
+
+/* ===================== camera moves: route flight, follow, idle tilt ===================== */
+// "Fly the route". The camera runs a smooth spline through the waypoints, on the sphere: each leg
+// is a cubic Bezier evaluated with nested slerps, its control points a third of the way along the
+// Catmull-Rom tangent at either end. Where a tangent lines up with the great circle the leg is
+// exactly a uniform slerp, which is what the arc itself is, so the growing tip stays under the
+// camera; where the route turns, the corner is rounded. It climbs on long legs, settles over each
+// arrival, slows through the waypoints without stopping, and the clock runs in step. Reduced
+// motion gets the same stops as cuts, the clock jumping with them.
+const chord=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+const tangentAt=(p,d)=>{const k=dot3(p,d),t=V(d.x-p.x*k,d.y-p.y*k,d.z-p.z*k),l=Math.hypot(t.x,t.y,t.z);
+  return l>1e-6?V(t.x/l,t.y/l,t.z/l):null;};               // d flattened into the tangent plane at p
+const along=(p,t,a)=>V(p.x*Math.cos(a)+t.x*Math.sin(a),p.y*Math.cos(a)+t.y*Math.sin(a),p.z*Math.cos(a)+t.z*Math.sin(a));
+function startPathFly(){
+  const hops=pathHops();if(hops.length<2)return;
+  playing=false;paintPlay();FLY=null;FOLLOW=false;idle=0;
+  const P=hops.map(h=>h.n.v),n=P.length,mob=isMobile()?1.3:1,legs=[];
+  for(let i=1;i<n;i++){const ang=angle(P[i-1],P[i]);
+    // long legs take longer but never drag; a leg that covers no ground and no years is only a beat
+    legs.push({ang,dur:Math.max(hops[i].yrs>0?1.1:0.5,Math.min(5.0,0.6+3.6*ang)),
+      cruise:Math.max(1.5,Math.min(3.1,1.42+1.9*ang))*mob,a0:i===1?1:0.7,a1:i===n-1?1:0.7});}
+  // resting height over each waypoint: low enough to read its label, high enough to see the next leg leave
+  const rest=P.map((_,i)=>{const a=legs[Math.max(0,i-1)].ang,b=legs[Math.min(legs.length-1,i)].ang;
+    return Math.max(1.42,Math.min(2.3,1.36+1.1*Math.min(a,b)+0.35*Math.max(a,b)))*mob;});
+  // direction of travel through each waypoint: toward the next from the one before, or along the
+  // only leg there is at either end. Each leg then scales it by its own length, so a short leg
+  // beside a long one cannot overshoot and loop.
+  const T=P.map((p,i)=>tangentAt(p,sub(P[Math.min(n-1,i+1)],P[Math.max(0,i-1)])));
+  legs.forEach((L,k)=>{const P0=P[k],P1=P[k+1],g0=tangentAt(P0,P1),g1=tangentAt(P1,P0);
+    const t0=T[k]||g0,t1=T[k+1]||(g1&&V(-g1.x,-g1.y,-g1.z));
+    L.c0=t0?along(P0,t0,L.ang/3):P0;L.c1=t1?along(P1,t1,-L.ang/3):P1;});
+  const a=ll2v(camLat,camLon),ang0=angle(a,P[0]);
+  PATHFLY={hops,P,legs,rest,i:0,t:0,phase:"in",a,d0:camDist,dur:1.0+2.8*Math.pow(ang0/Math.PI,0.75),
+    hump:Math.max(0,ang0-0.35)*0.75,far:ang0>3.0};
+  setTime(age2p(hops[0].n.bp));paintFlyBtn();
+}
+function endPathFly(){PATHFLY=null;paintFlyBtn();URLSTATE.dirty();}
+function stepPathFly(dt){
+  const F=PATHFLY,n=F.P.length;idle=0;
+  if(RM.matches){
+    F.t+=dt;if(F.phase!=="in"&&F.t<1.7)return;
+    if(F.phase==="in")F.phase="cut";else F.i++;
+    F.t=0;if(F.i>=n){endPathFly();return;}
+    setCam(F.P[F.i],F.rest[F.i]);setTime(age2p(F.hops[F.i].n.teff));return;}
+  if(F.phase==="in"){
+    F.t=F.far?1:Math.min(1,F.t+dt/F.dur);const e=ease5(F.t);
+    setCam(F.far?F.P[0]:slerp(F.a,F.P[0],e),F.d0+(F.rest[0]-F.d0)*e+F.hump*Math.sin(Math.PI*e));
+    if(F.t>=1){F.phase="hold";F.t=0;F.i=1;}return;}
+  if(F.phase==="hold"){F.t+=dt;if(F.t>=0.55){F.phase="leg";F.t=0;}return;}
+  if(F.phase==="leg"){
+    const L=F.legs[F.i-1],A=F.hops[F.i-1].n,B=F.hops[F.i].n;
+    F.t=Math.min(1,F.t+dt/L.dur);
+    // slow through the waypoints and quick between them; from rest on the first leg, to rest on the last
+    const s=F.t-(L.a0+(L.a1-L.a0)*F.t)*Math.sin(2*Math.PI*F.t)/(2*Math.PI);
+    const P0=F.P[F.i-1],P1=F.P[F.i],q0=slerp(P0,L.c0,s),q1=slerp(L.c0,L.c1,s),q2=slerp(L.c1,P1,s);
+    const v=L.ang<1e-5?P0:slerp(slerp(q0,q1,s),slerp(q1,q2,s),s);           // de Casteljau, on the sphere
+    const r0=F.rest[F.i-1],r1=F.rest[F.i];
+    setCam(v,r0+(r1-r0)*s+Math.max(0,L.cruise-Math.max(r0,r1))*Math.sin(Math.PI*s));
+    setTime(age2p(A.teff+(B.teff-A.teff)*s));                // the arc's own window, so its tip is under the camera
+    if(F.t>=1){F.i++;F.t=0;if(F.i>=n){const f=pathFocus(F.hops,SELN);
+      F.phase="out";F.a=ll2v(camLat,camLon);F.b=ll2v(f.lat,f.lon);F.d0=camDist;F.d1=pathDist(F.hops);}}
+    return;}
+  F.t=Math.min(1,F.t+dt/2.6);const e=ease5(Math.max(0,(F.t-0.2)/0.8));        // "out": a beat on the last waypoint, then back to the whole route
+  setCam(angle(F.a,F.b)>3.0?F.b:slerp(F.a,F.b,e),F.d0+(F.d1-F.d0)*e);
+  if(F.t>=1)endPathFly();
+}
+// the growing end of the selected route at NOW; null until the root's date is reached
+function routeTip(){
+  if(!SELN)return null;const ch=ancestry(SELN);if(NOW>ch[0].bp)return null;
+  for(let i=1;i<ch.length;i++){const t=arcTip(ch[i]);if(!t)return {v:ch[i-1].v};if(t.growing)return t;}
+  return {v:SELN.v};}
+// Playback with a lineage selected: keep the tip in view. It is left alone near the centre and
+// pulled harder the further out it drifts, always through a damper, so the camera never snaps.
+let FOLV=0;                                  // the follow camera's angular speed, rad/s
+function stepFollow(dt){
+  const tip=routeTip();if(!tip){FOLV=0;return;}idle=0;
+  const cur=ll2v(camLat,camLon),off=angle(cur,tip.v),cap=Math.acos(1/camDist);   // cap: angular radius of the visible disc
+  if(RM.matches){if(off>0.55*cap)setCam(tip.v);return;}
+  // the speed is what gets eased, under an acceleration cap: a chase that begins far from the tip
+  // still starts from rest, tops out near 40 degrees a second and closes exponentially
+  const g=Math.max(0,Math.min(1,(off-0.10*cap)/(0.45*cap))),want=Math.min(0.7,off/0.9)*g*g*(3-2*g);
+  FOLV+=Math.max(-1.2*dt,Math.min(1.2*dt,want-FOLV));
+  if(FOLV>1e-5&&off>1e-4&&off<3.0)setCam(slerp(cur,tip.v,Math.min(1,FOLV*dt/off)));
+}
+let ROLL=0,SPOT=0,SPOTAT=[0.5,0.5,0.4];
+// each extra can be switched off on its own, so a before/after differs by one thing only
+// (bloom and multisampling are QUAL.bloom and QUAL.msaa): FX.grat=0 in the console, and so on
+const FX={grat:1,tilt:1,spot:1,vig:1,air:1,aa:1};
+
 /* ===================== render ===================== */
 function railWidth(){return document.body.classList.contains("railopen")&&!isMobile()?RAILW:0;}
 function readChrome(){TOPH=$("topbar").offsetHeight||56;TLH=$("timeline").offsetHeight||142;}
-function resize(){DPR=Math.min(devicePixelRatio||1,2);
+function resize(){DPR=Math.min(devicePixelRatio||1,QUAL.dpr);
  const w=Math.floor(innerWidth*DPR),h=Math.floor(innerHeight*DPR);
  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;cv.style.width=innerWidth+"px";cv.style.height=innerHeight+"px";readChrome();}
  const sw=$("strata").clientWidth;if(sw!==STRW){STRW=sw;drawStrata();}}
 let last=0;
 function frame(ts){
-  const dt=Math.min(0.05,(ts-last)/1000||0);last=ts;clock+=dt;
+  const raw=(ts-last)/1000||0,dt=Math.min(0.05,raw);last=ts;clock+=dt;
+  governor(raw);
   if(playing){let p=PT+dt*0.034*speed;if(p>=1){p=1;playing=false;paintPlay();}setTime(p);}
-  if(PATHFLY){
-    const H=PATHFLY.hops;
-    PATHFLY.t+=dt/2.0;
-    if(PATHFLY.t>=1){PATHFLY.t=0;PATHFLY.i++;if(PATHFLY.i>=H.length){PATHFLY=null;paintFlyBtn();}}
-    if(PATHFLY){
-      const a=H[Math.max(0,PATHFLY.i-1)].n,b=H[PATHFLY.i].n,u=PATHFLY.t;
-      const e=u<0.5?2*u*u:1-Math.pow(-2*u+2,2)/2;
-      tgt={lat:a.lat+(b.lat-a.lat)*e,lon:a.lon+(((b.lon-a.lon+540)%360)-180)*e,d:1.85};
-      setTime(age2p(a.bp+(b.bp-a.bp)*e));
-      idle=0;
-    }
-  }
+  if(PATHFLY)stepPathFly(dt);
+  else if(FLY)stepFly(dt);
+  else if(FOLLOW&&SELN&&!drag){if(playing||FOLV>0.002)stepFollow(dt);else FOLLOW=false;}   // finishes its approach after playback ends
   idle+=dt;
-  if(tgt){const k=1-Math.pow(0.0016,dt);
-    let dl=((tgt.lon-camLon+540)%360)-180;
-    camLon+=dl*k;camLat+=(tgt.lat-camLat)*k;camDist+=(tgt.d-camDist)*k;
-    if(Math.abs(dl)<0.25&&Math.abs(tgt.lat-camLat)<0.25){tgt=null;URLSTATE.dirty();}}
-  else if(idle>6&&!drag&&!RM.matches&&$("veil").hidden)camLon-=dt*1.5;
+  const resting=idle>6&&!drag&&!RM.matches&&$("veil").hidden&&!PATHFLY&&!FLY;
+  if(resting)camLon-=dt*1.5;
+  // Left alone and seen from far enough out, the globe leans onto its 23.4 degree axis and turns
+  // about it. Any touch, selection or flight rights it, so work is always done north-up.
+  const lean=(FX.tilt&&resting&&!SELN&&!SELREC)?23.4*Math.max(0,Math.min(1,(camDist-1.9)/0.7)):0;
+  ROLL+=(lean-ROLL)*(1-Math.exp(-dt/(lean>ROLL?1.8:0.45)));
   resize();
-  const w=cv.width,h=cv.height;
-  gl.viewport(0,0,w,h);
+  const w=cv.width,h=cv.height,post=GL2&&postSize(w,h);
+  gpuBegin();
+  gl.bindFramebuffer(gl.FRAMEBUFFER,post?(POST.msFbo||POST.scene.f):null);
+  gl.viewport(0,0,w,h);gl.depthMask(true);
   gl.clearColor(0.031,0.043,0.078,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
   gl.enable(gl.BLEND);
   const cam=camPos();
   const proj=m4persp(52*Math.PI/180,w/h,0.05,120);
   proj[8]=railWidth()/innerWidth;           // centre the globe in the space beside the drawer
   proj[9]=-(TLH-TOPH)/innerHeight;          // and between the top bar and the timeline
-  const view=m4look(cam,V(0,0,0),V(0,1,0));
+  const zc=norm(cam),xr=norm(cross(V(0,1,0),zc)),yu=cross(zc,xr),rr=ROLL*Math.PI/180,cr=Math.cos(rr),sr=Math.sin(rr);
+  const view=m4look(cam,V(0,0,0),V(yu.x*cr-xr.x*sr,yu.y*cr-xr.y*sr,yu.z*cr-xr.z*sr));   // the camera rolls left, so the pole leans right, as on a desk globe
   const mvp=m4mul(proj,view);lastMVP=mvp;lastCam=cam;
   const sun=ll2v(14,camLon+36),PX=DPR;
   gl.disable(gl.DEPTH_TEST);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
   useProg(pStar);gl.uniformMatrix4fv(pStar.u("uMVP"),false,mvp);gl.uniform1f(pStar.u("uPX"),PX);
   bind(pStar,"aP",starP,3);bind(pStar,"aB",starB,1);gl.drawArrays(gl.POINTS,0,STARN);
-  gl.enable(gl.DEPTH_TEST);gl.depthMask(true);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
-  useProg(pGlobe);gl.uniformMatrix4fv(pGlobe.u("uMVP"),false,mvp);
-  gl.uniform3f(pGlobe.u("uCam"),cam.x,cam.y,cam.z);gl.uniform3f(pGlobe.u("uSun"),sun.x,sun.y,sun.z);
-  bind(pGlobe,"aP",sphP,3);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,sphI);
-  gl.drawElements(gl.TRIANGLES,SPH.n,gl.UNSIGNED_SHORT,0);
-  useProg(pLand);gl.uniformMatrix4fv(pLand.u("uMVP"),false,mvp);
-  gl.uniform3f(pLand.u("uCam"),cam.x,cam.y,cam.z);gl.uniform3f(pLand.u("uSun"),sun.x,sun.y,sun.z);
-  gl.uniform1f(pLand.u("uPX"),PX);bind(pLand,"aP",landB,3);gl.drawArrays(gl.POINTS,0,LANDCOUNT);
+  gl.blendFunc(gl.ONE,gl.ONE);               // the limb goes down first; the globe then covers all but the ring outside it
+  useProg(pAir);gl.uniformMatrix4fv(pAir.u("uMVP"),false,mvp);gl.uniform1f(pAir.u("uK"),FX.air);
+  gl.uniform3f(pAir.u("uCam"),cam.x,cam.y,cam.z);gl.uniform3f(pAir.u("uSun"),sun.x,sun.y,sun.z);
+  bind(pAir,"aP",sphP,3);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,sphI);gl.drawElements(gl.TRIANGLES,SPH.n,gl.UNSIGNED_SHORT,0);
+  gl.enable(gl.DEPTH_TEST);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+  if(EARTH.ready){
+    EARTH.fade=RM.matches?1:Math.min(1,EARTH.fade+dt/1.4);
+    drawEarth(mvp,cam,sun);
+  }else{
+    useProg(pGlobe);gl.uniformMatrix4fv(pGlobe.u("uMVP"),false,mvp);
+    gl.uniform3f(pGlobe.u("uCam"),cam.x,cam.y,cam.z);gl.uniform3f(pGlobe.u("uSun"),sun.x,sun.y,sun.z);
+    bind(pGlobe,"aP",sphP,3);gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,sphI);
+    gl.drawElements(gl.TRIANGLES,SPH.n,gl.UNSIGNED_SHORT,0);
+  }
+  if(EARTH.fade<1){
+    useProg(pLand);gl.uniformMatrix4fv(pLand.u("uMVP"),false,mvp);
+    gl.uniform3f(pLand.u("uCam"),cam.x,cam.y,cam.z);gl.uniform3f(pLand.u("uSun"),sun.x,sun.y,sun.z);
+    gl.uniform1f(pLand.u("uPX"),PX);gl.uniform1f(pLand.u("uA"),1-EARTH.fade);
+    bind(pLand,"aP",landB,3);gl.drawArrays(gl.POINTS,0,LANDCOUNT);
+  }
+  drawCoast(mvp,cam);
   drawLayers(mvp,cam,PX);
   gl.depthMask(false);gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
   drawTree(mvp,cam,PX);
+  drawMarks(mvp,cam,PX);
   gl.depthMask(true);
+  if(post){
+    const c0=project(V(0,0,0),mvp,1,1),want=(FX.spot&&SELN&&!PATHFLY)?1:0;
+    SPOT=RM.matches?want:SPOT+(want-SPOT)*(1-Math.exp(-dt/0.5));
+    if(SELN&&SPOT>0.003){
+      const hops=pathHops(),f=pathFocus(hops,SELN),fv=ll2v(f.lat,f.lon),c=project(fv,mvp,innerWidth,innerHeight);
+      if(c&&dot3(fv,norm(cam))>0.15){let r=0;
+        for(const hp of hops){const s=project(hp.n.v,mvp,innerWidth,innerHeight);if(s)r=Math.max(r,Math.hypot(s.x-c.x,s.y-c.y));}
+        SPOTAT=[c.x/innerWidth,1-c.y/innerHeight,(r+150)/innerHeight];}
+      else SPOT*=0.9;
+    }
+    postDraw(w,h,c0?[c0.x,1-c0.y]:[0.5,0.5],[SPOTAT[0],SPOTAT[1],SPOTAT[2],SPOT]);
+  }
+  gpuEnd();
   paintLabels(mvp,innerWidth,innerHeight,cam);
   paintWaypoints(mvp,innerWidth,innerHeight,cam);
   requestAnimationFrame(frame);
@@ -1928,9 +2514,9 @@ async function quickTrace(){
   if(!n)n=NODES.filter(x=>x.parent).sort((a,b)=>(b.n||0)-(a.n||0))[0];
   if(!n)return;
   selectNode(n);
-  const hops=pathHops();if(hops.length>1){PATHFLY={hops,i:0,t:0};playing=false;paintPlay();paintFlyBtn();}
+  startPathFly();
 }
-function homeView(){selectNode(null);closeSearch();tgt={lat:26,lon:24,d:innerWidth/innerHeight<0.8?4.4:2.6};idle=0;}
+function homeView(){selectNode(null);closeSearch();flyTo({lat:26,lon:24},innerWidth/innerHeight<0.8?4.4:2.6);}
 $("home").onclick=homeView;
 $("share").onclick=e=>{URLSTATE.write();copyText(location.href,null,"Link to this view copied");};
 
@@ -1949,6 +2535,7 @@ const URLSTATE={
     if(TMODE)p.set("w","1");
     if(LINFILTER)p.set("f","1");
     if(RANGE[0]>0||RANGE[1]<MAXAGE)p.set("g",RANGE[0]+","+RANGE[1]);
+    if(QUAL.pin!=null)p.set("q",String(QUAL.pin));      // a pinned render quality survives rewrites of the hash
     history.replaceState(null,"","#"+p.toString());
   },
   read(){const h=location.hash.slice(1);if(!h)return null;try{return new URLSearchParams(h);}catch(e){return null;}},
@@ -1981,7 +2568,7 @@ const URLSTATE={
       if(i>=0&&i<L.n)selectRec({L,i});}
     if(p.get("f")==="1")LINFILTER=true;
     commitFilters();
-    if(camOK){camLat=cam[0];camLon=cam[1];camDist=Math.max(1.12,Math.min(7.5,cam[2]));tgt=null;}
+    if(camOK){camLat=cam[0];camLon=cam[1];camDist=Math.max(1.12,Math.min(7.5,cam[2]));FLY=null;}
     this.ready=true;return true;
   }
 };
@@ -2019,6 +2606,11 @@ function progress(p,msg){const el=$("progress");el.querySelector("i").style.tran
   let seen=false;try{seen=localStorage.getItem("daa.seen")==="1";}catch(e){}
   const hashed=!!(URLSTATE.read()&&URLSTATE.read().has("m"));
   if(!seen&&!hashed)showVeil("welcome");
+  // #q=0..3 pins the render quality and switches the frame-time governor off (3 is everything on)
+  const qp=URLSTATE.read(),qv=qp&&qp.has("q")?parseInt(qp.get("q"),10):NaN;
+  if(qv>=0&&qv<=3){QUAL.pin=qv;setQual(qv);}
+  // a few KB, and it lets the sea-level readout work before the rasters arrive
+  fetch("d/earth.json"+GROUNDV).then(r=>r.ok?r.json():null).then(j=>{if(j&&!EARTH.meta){EARTH.meta=j;paintSea();}}).catch(()=>{});
   requestAnimationFrame(frame);
   progress(0.06,"Loading the lineage tree…");
   try{const man=await (await fetch("d/manifest.json")).json();
@@ -2042,6 +2634,8 @@ function progress(p,msg){const el=$("progress");el.querySelector("i").style.tran
   getTree("mt","obs").then(()=>{if(Q.value.trim())runSearch(Q.value);});   // so search covers both markers
   await URLSTATE.apply();
   progress(1,"Ready");
+  BOOTED=true;
+  loadEarth().then(()=>{paintSea();loadCoast();});      // the ground streams in after the evidence
   $("qsPlay").disabled=false;$("qsTrace").disabled=false;
   $("wstat").innerHTML=`${fmtN(AADRN)} genomes and ${fmtN(LBY.places.n||32902)} places loaded`;
 })();
