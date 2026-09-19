@@ -17,7 +17,7 @@
   :root{
     --void:#080B14;
     --glass:rgba(13,13,17,.84); --glass2:rgba(13,13,17,.70);
-    --ink:#EDE9E1; --ink2:#B7B2A8; --ink3:#7E7A73; --ink4:#56534D;
+    --ink:#EDE9E1; --ink2:#B7B2A8; --ink3:#8A867F; --ink4:#56534D;
     --line:rgba(237,233,225,.09); --line2:rgba(237,233,225,.17);
     --lift:rgba(237,233,225,.045); --lift2:rgba(237,233,225,.10);
     --focus:#EDE9E1;
@@ -32,29 +32,30 @@
   body{margin:0;background:var(--void);color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.45;
        overflow:hidden;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
   button,input,select,textarea{font:inherit;color:inherit}
-  button{cursor:pointer}
+  button{cursor:pointer;touch-action:manipulation}
+  input,select{touch-action:manipulation}
   a{color:var(--ink);text-decoration:none}
   h1,h2,h3,p,dl,dd,figure{margin:0}
   [hidden]{display:none!important}
   :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   ::selection{background:rgba(237,233,225,.22)}
   mark{background:rgba(237,233,225,.16);color:inherit;border-radius:2px}
-  kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--line2);border-radius:4px;padding:1px 6px;
+  kbd{font-family:var(--mono);font-size:11px;border:1px solid var(--line2);border-radius:4px;padding:1px 6px;
       color:var(--ink);background:var(--lift);line-height:1.4}
 
   /* ---- stage ---- */
   #stage{position:fixed;inset:0;display:block;touch-action:none;cursor:grab;background:var(--void)}
   #stage.drag{cursor:grabbing} #stage.pick{cursor:pointer}
   #labels,#waypoints{position:fixed;inset:0;pointer-events:none;overflow:hidden}
-  .lbl{position:absolute;left:0;top:0;transform:translate(-50%,-50%);font-family:var(--sans);font-size:11.5px;
+  .lbl{position:absolute;left:0;top:0;transform:translate(-50%,-50%);font-family:var(--sans);font-size:12px;
        font-weight:500;letter-spacing:.01em;white-space:nowrap;will-change:transform;
        text-shadow:0 0 8px #080B14,0 0 4px #080B14,0 1px 2px #080B14}
-  .lbl i{font-style:normal;color:var(--ink3);font-weight:400;font-size:10.5px}
+  .lbl i{font-style:normal;color:var(--ink3);font-weight:400;font-size:11px}
   .lbl.sel{font-size:13px}
   .wp{position:absolute;left:0;top:0;transform:translate(-50%,-50%);pointer-events:none;will-change:transform}
   .wp .dot{width:19px;height:19px;border-radius:50%;border:1.5px solid currentColor;background:rgba(8,11,20,.85);
-    display:grid;place-items:center;font-family:var(--mono);font-size:9.5px;font-weight:500;box-shadow:0 0 12px currentColor}
-  .wp .cap{position:absolute;left:24px;top:0;white-space:nowrap;font-size:11.5px;font-weight:500;
+    display:grid;place-items:center;font-family:var(--mono);font-size:10px;font-weight:500;box-shadow:0 0 12px currentColor}
+  .wp .cap{position:absolute;left:24px;top:0;white-space:nowrap;font-size:12px;font-weight:500;
     text-shadow:0 0 8px #080B14,0 0 4px #080B14}
   .wp .cap i{font-style:normal;color:var(--ink3);font-weight:400;font-family:var(--mono);font-size:10px;margin-left:4px}
 
@@ -63,17 +64,18 @@
     border:1px solid var(--line2);border-radius:9px;padding:7px 11px 7px 10px;display:flex;align-items:center;gap:9px;
     max-width:320px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
   .tip .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 8px currentColor}
-  .tip .t{font-size:12.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .tip .t{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   .tip .m{display:block;font-size:11px;color:var(--ink3);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
   /* ---- top bar ---- */
-  .topbar{position:fixed;top:0;left:0;right:0;height:var(--top);z-index:30;display:flex;align-items:center;gap:14px;
-    padding:0 14px 0 20px;pointer-events:none;
+  .topbar{position:fixed;top:0;left:0;right:0;height:calc(var(--top) + env(safe-area-inset-top,0px));z-index:30;display:flex;align-items:center;gap:14px;
+    padding:env(safe-area-inset-top,0px) 14px 0 20px;pointer-events:none;
     background:linear-gradient(180deg,rgba(8,11,20,.9),rgba(8,11,20,.5) 70%,rgba(8,11,20,0))}
   .topbar>*{pointer-events:auto}
   .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .h1{font-size:inherit;font-weight:400;line-height:1;display:flex}
   .wordmark{font-family:var(--serif);font-size:23px;line-height:1;letter-spacing:.005em;white-space:nowrap;background:none;border:0;padding:0;color:var(--ink)}
-  .chip{border:1px solid var(--line2);background:rgba(13,13,17,.6);border-radius:999px;padding:5px 11px;font-size:11.5px;
+  .chip{border:1px solid var(--line2);background:rgba(13,13,17,.6);border-radius:999px;padding:5px 11px;font-size:12px;
     color:var(--ink2);white-space:nowrap;transition:background .15s,color .15s,border-color .15s;letter-spacing:.01em}
   .chip:hover{background:var(--lift2);color:var(--ink);border-color:rgba(237,233,225,.3)}
   .search{position:relative;flex:1;max-width:520px;margin:0 auto;min-width:0}
@@ -82,21 +84,21 @@
     transition:border-color .15s,background .15s}
   .search .field:focus-within{border-color:rgba(237,233,225,.4);background:rgba(13,13,17,.9)}
   .search .field>svg{width:16px;height:16px;flex:0 0 auto;color:var(--ink3)}
-  .search input{flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:13.5px;color:var(--ink);padding:0}
+  .search input{flex:1;min-width:0;background:transparent;border:0;outline:0;font-size:14px;color:var(--ink);padding:0}
   .search input::placeholder{color:var(--ink3)}
   .search input::-webkit-search-cancel-button,.search input::-webkit-search-decoration{-webkit-appearance:none}
   .search .field kbd{color:var(--ink3);background:transparent}
   .qres{position:absolute;top:44px;left:0;right:0;background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--line2);
     border-radius:13px;box-shadow:0 24px 60px rgba(0,0,0,.6);padding:6px;max-height:min(62vh,540px);overflow-y:auto}
-  .qg{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);padding:9px 10px 4px;
+  .qg{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);padding:9px 10px 4px;
     display:flex;align-items:center;gap:8px}
   .qi{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;border-radius:8px;
     padding:7px 10px;color:var(--ink)}
   .qi:hover,.qi[aria-selected=true]{background:var(--lift2)}
   .qi .sw{width:8px;height:8px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 6px currentColor}
   .qi .n{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  .qi .m{margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--ink3);white-space:nowrap;padding-left:10px}
-  .qempty{padding:12px 10px;font-size:12.5px;color:var(--ink3);line-height:1.5}
+  .qi .m{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--ink3);white-space:nowrap;padding-left:10px}
+  .qempty{padding:12px 10px;font-size:13px;color:var(--ink3);line-height:1.5}
   .qempty b{color:var(--ink2);font-weight:500}
   .tools{display:flex;align-items:center;gap:6px}
   .ibtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:rgba(13,13,17,.72);backdrop-filter:blur(12px);
@@ -107,11 +109,11 @@
   .ibtn svg{width:17px;height:17px}
   .ibtn.sm{width:32px;height:32px;border-radius:9px} .ibtn.sm svg{width:15px;height:15px}
   .progress{position:absolute;left:0;right:0;top:0;height:2px;pointer-events:none;overflow:hidden}
-  .progress i{display:block;height:100%;width:0;background:var(--ink);opacity:.9;transition:width .5s var(--ease),opacity .7s}
+  .progress i{display:block;height:100%;width:100%;transform:scaleX(0);transform-origin:0 50%;background:var(--ink);opacity:.9;transition:transform .5s var(--ease),opacity .7s}
   .progress.done i{opacity:0}
 
   /* ---- drawer ---- */
-  .rail{position:fixed;top:var(--top);right:0;bottom:var(--tl);width:var(--rail);z-index:20;display:flex;flex-direction:column;
+  .rail{position:fixed;top:calc(var(--top) + env(safe-area-inset-top,0px));right:0;bottom:var(--tl);width:var(--rail);z-index:20;display:flex;flex-direction:column;
     background:var(--glass);backdrop-filter:blur(22px) saturate(1.15);border-left:1px solid var(--line);
     transition:transform .38s var(--ease),opacity .3s;will-change:transform}
   .rail.hide{transform:translateX(calc(100% + 2px));opacity:0;pointer-events:none}
@@ -131,10 +133,10 @@
   @keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   .pane::-webkit-scrollbar{width:8px} .pane::-webkit-scrollbar-thumb{background:var(--line2);border-radius:8px}
   .sect{display:flex;flex-direction:column;gap:10px}
-  .sect>h2{font-size:10.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);
+  .sect>h2{font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);
     display:flex;align-items:baseline;gap:8px}
-  .sect>h2 .cnt{margin-left:auto;font-family:var(--mono);font-weight:400;letter-spacing:0;text-transform:none;font-size:10.5px}
-  .lead{font-size:12.5px;line-height:1.55;color:var(--ink2)}
+  .sect>h2 .cnt{margin-left:auto;font-family:var(--mono);font-weight:400;letter-spacing:0;text-transform:none;font-size:11px}
+  .lead{font-size:13px;line-height:1.55;color:var(--ink2)}
   .lead b{color:var(--ink);font-weight:500}
 
   /* rows: layer switches, class checks, group dots */
@@ -166,19 +168,19 @@
   @keyframes spin{to{transform:rotate(360deg)}}
   .sub{margin:0 0 6px 13px;padding-left:12px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:1px}
   .sub .row{padding:5px 8px} .sub .row .nm{font-size:12px;font-weight:400} .sub .row .dot{width:7px;height:7px}
-  .sub h3{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink4);padding:9px 8px 3px}
+  .sub h3{font-size:10px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3);padding:9px 8px 3px}
   .err{font-size:11px;color:#e0755f;padding:2px 8px 6px}
 
   /* segmented controls with a label + helper */
   .ctl{display:flex;flex-direction:column;gap:5px}
-  .ctl label{font-size:12.5px;color:var(--ink);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .ctl label{font-size:13px;color:var(--ink);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
   .ctl label small{color:var(--ink3);font-size:11px;text-align:right}
   .seg{display:flex;background:var(--lift);border:1px solid var(--line);border-radius:9px;padding:3px;gap:2px}
   .seg button{flex:1;background:transparent;border:0;border-radius:6px;padding:6px 6px;font-size:12px;color:var(--ink2);
     white-space:nowrap;transition:background .15s,color .15s}
   .seg button:hover{color:var(--ink)}
   .seg button[aria-pressed=true]{background:var(--lift2);color:var(--ink);box-shadow:0 1px 0 rgba(0,0,0,.35)}
-  .seg.mini button{padding:4px 9px;font-size:11.5px}
+  .seg.mini button{padding:4px 9px;font-size:12px}
 
   .note{font-size:12px;line-height:1.55;color:var(--ink3);padding-left:10px;border-left:2px solid var(--line2)}
   .note b{color:var(--ink2);font-weight:500}
@@ -188,11 +190,11 @@
   .card{border:1px solid var(--line);border-radius:12px;background:rgba(237,233,225,.03);overflow:hidden}
   .card.sel{border-color:color-mix(in srgb,var(--c) 45%,transparent);box-shadow:inset 3px 0 0 var(--c)}
   .dh{padding:14px 14px 12px;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid var(--line)}
-  .dh .kind{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3)}
+  .dh .kind{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--ink3)}
   .dh .code{font-family:var(--serif);font-size:26px;line-height:1.05;letter-spacing:.005em;overflow-wrap:anywhere}
   .dh .when{font-family:var(--mono);font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums}
   .db{padding:12px 14px 14px;display:flex;flex-direction:column;gap:11px}
-  .db p{font-size:12.5px;line-height:1.55;color:var(--ink2)}
+  .db p{font-size:13px;line-height:1.55;color:var(--ink2)}
   .db.empty{align-items:flex-start;gap:12px;padding:18px 16px}
   .db.empty>svg{width:26px;height:26px;color:var(--ink3)}
   .kv{display:grid;grid-template-columns:minmax(74px,auto) 1fr;gap:5px 12px;font-size:12px}
@@ -201,7 +203,7 @@
   .kv .mono{font-family:var(--mono);font-size:11px}
   .card a{color:var(--ink);border-bottom:1px solid var(--line2)}
   .chain{display:flex;flex-wrap:wrap;gap:4px 2px;align-items:center}
-  .chain button{font-family:var(--mono);font-size:10.5px;color:var(--ink2);background:var(--lift);border:0;padding:3px 6px;border-radius:5px}
+  .chain button{font-family:var(--mono);font-size:11px;color:var(--ink2);background:var(--lift);border:0;padding:3px 6px;border-radius:5px}
   .chain button:hover{background:var(--lift2);color:var(--ink)}
   .chain button.cur{color:var(--ink);background:var(--lift2)}
   .chain i{font-style:normal;color:var(--ink4);font-size:10px;padding:0 2px}
@@ -212,8 +214,10 @@
   .btn svg{width:14px;height:14px}
   .btn[aria-pressed=true],.btn.primary{background:var(--ink);color:#0e0e12;border-color:var(--ink)}
   .btn.primary:hover,.btn[aria-pressed=true]:hover{background:#fff}
-  .btn.sm{padding:4px 8px;font-size:11.5px}
-  .btn:disabled{opacity:.45;cursor:default}
+  .btn.sm{padding:4px 8px;font-size:12px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn:active,.ibtn:active,.row:active,.seg button:active,.qi:active,.tabs button:active,.chain button:active{background:var(--lift2)}
+  .btn:active,.start:active{transform:scale(.98)} .pbtn:active{transform:scale(.94)}
 
   /* route stepper: numbered because the chain is an ordered ancestry */
   .steps{display:flex;flex-direction:column}
@@ -221,13 +225,13 @@
   .step::before{content:"";position:absolute;left:9.5px;top:24px;bottom:-4px;width:1px;background:var(--line2)}
   .step:last-child::before{display:none}
   .step .num{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--c);background:#0e0e12;color:var(--c);
-    font-family:var(--mono);font-size:9.5px;display:grid;place-items:center;grid-row:span 2;align-self:start;position:relative;z-index:1}
+    font-family:var(--mono);font-size:10px;display:grid;place-items:center;grid-row:span 2;align-self:start;position:relative;z-index:1}
   .step .nm{font-size:13px;font-weight:500;color:var(--c);background:none;border:0;padding:0;text-align:left;line-height:1.35;cursor:pointer}
   .step .nm:hover{text-decoration:underline}
-  .step .d{font-family:var(--mono);font-size:10.5px;color:var(--ink3);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .step .d{font-family:var(--mono);font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums;white-space:nowrap}
   .step .meta{grid-column:2/4;font-size:11px;color:var(--ink3);line-height:1.4}
 
-  .inp{background:rgba(8,11,20,.55);border:1px solid var(--line2);color:var(--ink);font-family:var(--mono);font-size:11.5px;
+  .inp{background:rgba(8,11,20,.55);border:1px solid var(--line2);color:var(--ink);font-family:var(--mono);font-size:12px;
     padding:6px 8px;border-radius:7px;width:96px}
   .inp:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:transparent}
   .dd{background:var(--lift);border:1px solid var(--line2);color:var(--ink);font-size:12px;padding:6px 26px 6px 9px;border-radius:8px;
@@ -242,16 +246,16 @@
   .qhead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
   .qn{font-family:var(--serif);font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
   .qt{font-size:12px;color:var(--ink3)}
-  .qrow{display:flex;align-items:center;gap:9px;font-size:12.5px;padding:4px 0}
+  .qrow{display:flex;align-items:center;gap:9px;font-size:13px;padding:4px 0}
   .qrow .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 6px currentColor}
   .qrow .n{margin-left:auto;font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;color:var(--ink2)}
 
   #cov{width:100%;height:auto;aspect-ratio:640/380;display:block;border:1px solid var(--line);border-radius:10px;background:rgba(8,11,20,.55)}
   .covleg{display:flex;flex-wrap:wrap;gap:4px 14px}
-  .covleg span{font-size:11.5px;color:var(--ink2);display:flex;align-items:center;gap:6px}
+  .covleg span{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:6px}
   .covleg i{width:10px;height:2px;display:inline-block}
   .covleg small{color:var(--ink3);font-family:var(--mono);font-size:10px}
-  .covtip{font-family:var(--mono);font-size:10.5px;color:var(--ink2);min-height:16px;line-height:1.4}
+  .covtip{font-family:var(--mono);font-size:11px;color:var(--ink2);min-height:16px;line-height:1.4}
 
   .srcs{display:flex;flex-direction:column;gap:8px}
   .srcc{border:1px solid var(--line);border-left:3px solid var(--c);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:5px}
@@ -261,7 +265,7 @@
     padding:1px 6px;white-space:nowrap}
   .srcc p{font-size:12px;color:var(--ink3);line-height:1.5}
   .srcc p b{color:var(--ink2);font-weight:500}
-  .srcc a{color:var(--ink2);font-size:11.5px;border-bottom:1px solid var(--line2);align-self:flex-start}
+  .srcc a{color:var(--ink2);font-size:12px;border-bottom:1px solid var(--line2);align-self:flex-start}
 
   /* ---- timeline: the strata band is the instrument's main dial ---- */
   .timeline{position:fixed;left:0;right:0;bottom:0;height:var(--tl);z-index:25;display:flex;flex-direction:column;
@@ -275,7 +279,7 @@
   .pbtn svg{width:16px;height:16px}
   .readout{display:flex;align-items:baseline;gap:9px;margin-left:4px;min-width:0}
   .bigyear{font-family:var(--serif);font-size:38px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:.005em;white-space:nowrap}
-  .ycap{font-size:10.5px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+  .ycap{font-size:11px;color:var(--ink3);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
   .epoch{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--ink2);white-space:nowrap;overflow:hidden;
     text-overflow:ellipsis;min-width:0;padding-left:6px}
   .tright{margin-left:auto;display:flex;align-items:center;gap:8px}
@@ -295,7 +299,7 @@
   .hovertag.flip span{left:auto;right:6px}
   #scrub{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize;-webkit-appearance:none;appearance:none;background:transparent}
   .ticks{position:relative;height:16px;margin-top:5px}
-  .ticks i{position:absolute;top:0;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;color:var(--ink3);
+  .ticks i{position:absolute;top:0;transform:translateX(-50%);font-family:var(--mono);font-size:10px;color:var(--ink3);
     white-space:nowrap;font-style:normal}
   .ticks i::before{content:"";position:absolute;left:50%;top:-6px;width:1px;height:4px;background:var(--line2)}
 
@@ -308,7 +312,7 @@
   @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
   .welcome .x{position:absolute;top:14px;right:14px}
   .welcome h1{font-family:var(--serif);font-size:40px;line-height:1;font-weight:400;padding-right:40px}
-  .welcome .thesis{font-size:14.5px;line-height:1.55;color:var(--ink2)}
+  .welcome .thesis{font-size:15px;line-height:1.55;color:var(--ink2)}
   .welcome .thesis b{color:var(--ink);font-weight:500}
   .starts{display:flex;flex-direction:column;gap:6px}
   .start{display:flex;align-items:center;gap:13px;width:100%;text-align:left;background:var(--lift);border:1px solid var(--line);
@@ -316,52 +320,70 @@
   .start:hover{background:var(--lift2);border-color:var(--line2)}
   .start:disabled{opacity:.45;cursor:progress}
   .start>svg{width:19px;height:19px;flex:0 0 auto;color:var(--ink2)}
-  .start b{display:block;font-weight:500;font-size:13.5px}
+  .start b{display:block;font-weight:500;font-size:14px}
   .start span span{display:block;font-size:12px;color:var(--ink3);margin-top:1px}
-  .welcome .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11.5px;color:var(--ink3);flex-wrap:wrap}
+  .welcome .foot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px;color:var(--ink3);flex-wrap:wrap}
   .welcome .foot a{color:var(--ink2);border-bottom:1px solid var(--line2)}
   .gcols{display:grid;grid-template-columns:1.3fr 1fr;gap:22px}
-  .gcols h3{font-size:10.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
-  .gcols p{font-size:12.5px;line-height:1.55;color:var(--ink2);margin-bottom:8px}
+  .gcols h3{font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px}
+  .gcols p{font-size:13px;line-height:1.55;color:var(--ink2);margin-bottom:8px}
   .gcols p b{color:var(--ink);font-weight:500}
-  .keys{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font-size:12.5px;color:var(--ink2);align-items:center}
+  .keys{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font-size:13px;color:var(--ink2);align-items:center}
   .toast{position:fixed;left:50%;bottom:calc(var(--tl) + 16px);transform:translate(-50%,8px);z-index:60;background:var(--ink);color:#0e0e12;
-    font-size:12.5px;font-weight:500;padding:8px 14px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;
+    font-size:13px;font-weight:500;padding:8px 14px;border-radius:999px;box-shadow:0 10px 30px rgba(0,0,0,.5);opacity:0;
     transition:opacity .2s,transform .25s var(--ease);pointer-events:none}
   .toast.on{opacity:1;transform:translate(-50%,0)}
 
   @media (min-width:881px){
-    .veil{padding:var(--top) 20px var(--tl)}
+    .veil{padding:calc(var(--top) + env(safe-area-inset-top,0px)) 20px var(--tl)}
     body.railopen .veil{padding-right:calc(var(--rail) + 20px)}
   }
   @media (max-width:880px){
-    :root{--top:52px;--tl:112px}
+    :root{--top:52px;--tl:124px}
     .topbar{padding:0 10px 0 14px;gap:8px}
     .wordmark{font-size:19px}
     .chip,#share,.search .field kbd{display:none}
     .search{max-width:none;margin:0}
-    .search .field{height:36px}
     .topbar:has(#q:focus) .brand{display:none}
     .qres{max-height:50vh}
-    .rail{top:auto;left:0;right:0;bottom:0;width:auto;height:min(72vh,620px);border-left:0;border-top:1px solid var(--line2);
+    .rail{top:auto;left:0;right:0;bottom:0;width:auto;height:min(72vh,620px);height:min(72dvh,620px);border-left:0;border-top:1px solid var(--line2);
       border-radius:18px 18px 0 0;z-index:40}
     .rail.hide{transform:translateY(105%);opacity:1}
     .handle{display:block}
     .tabs{padding:2px 8px 0}
-    .pane{padding:14px 14px 44px;gap:22px}
+    .pane{padding:14px 14px calc(44px + env(safe-area-inset-bottom,0px));gap:22px}
     .timeline{padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
-    .transport{height:36px;gap:8px}
-    .pbtn{width:34px;height:34px} .pbtn svg{width:14px;height:14px}
-    .bigyear{font-size:26px} .ycap{display:none} .epoch{font-size:13.5px}
+    .transport{height:44px;gap:8px}
+    .pbtn{width:44px;height:44px}
+    .ibtn{width:44px;height:44px} .ibtn.sm{width:44px;height:44px}
+    .row{min-height:44px} .sub .row{min-height:44px}
+    .search .field{height:44px} .qres{top:50px}
+    .wordmark{min-height:44px;display:inline-flex;align-items:center}
+    .seg button{padding:10px 6px} .seg.mini button{padding:9px 10px}
+    .btn{padding:10px 12px} .btn.sm{padding:8px 10px}
+    .qi{padding:11px 10px} .chain button{padding:7px 8px}
+    .tabs button{padding:10px 4px}
+    .search input,.inp{font-size:16px}
+    .lead,.note,.db p,.row .nm,.kv,.qrow{font-size:14px}
+    .bigyear{font-size:26px} .ycap{display:none} .epoch{font-size:14px}
     #speed,.tright .seg{display:none} .mob{display:inline-flex}
     .strata{height:36px;margin-top:6px}
     .ticks i[data-m="1000"],.ticks i[data-m="20000"]{display:none}
-    .lbl{font-size:10.5px}
+    .lbl{font-size:11px}
     .veil{padding:14px}
     .welcome{padding:22px 20px 18px;gap:14px}
     .welcome h1{font-size:30px}
     .gcols{grid-template-columns:1fr}
     .toast{bottom:calc(var(--tl) + 12px)}
+  }
+  @media (max-width:430px){
+    .wordmark{font-size:17px} .search .field{padding:0 8px 0 10px;gap:6px}
+  }
+  @media (max-height:480px){
+    :root{--tl:96px}
+    .timeline{padding-top:6px} .transport{height:38px} .bigyear{font-size:24px} .ycap{display:none}
+    .strata{height:30px;margin-top:4px} .ticks{display:none}
+    .rail{height:min(80dvh,400px)}
   }
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{transition:none!important;animation:none!important}
@@ -377,22 +399,22 @@
 
 <header class="topbar" id="topbar">
   <div class="brand">
-    <button class="wordmark" id="home" title="Reset the view">Deep Ancestry Atlas</button>
+    <h1 class="h1"><button class="wordmark" id="home" title="Reset the view" aria-label="Deep Ancestry Atlas — reset the view">Deep Ancestry Atlas</button></h1>
     <button class="chip" id="modechip" title="Lineage tree settings">Y-DNA · observed · centroid</button>
   </div>
   <div class="search" id="search">
     <label class="field" for="q">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="Search lineages, places, samples, periods…" autocomplete="off" spellcheck="false"
-             aria-label="Search the atlas" aria-autocomplete="list" aria-controls="qres" aria-expanded="false">
+             aria-label="Search the atlas" aria-autocomplete="list" aria-controls="qres" aria-expanded="false" enterkeyhint="search">
       <kbd>/</kbd>
     </label>
     <div class="qres" id="qres" hidden role="listbox" aria-label="Search results"></div>
   </div>
   <div class="tools">
-    <button class="ibtn" id="share" title="Copy a link to this view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg></button>
-    <button class="ibtn" id="guidebtn" title="Guide (?)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7"/><path d="M12 17h.01"/></svg></button>
-    <button class="ibtn" id="railtoggle" aria-pressed="true" title="Show or hide the panel (L)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M15 4v16"/></svg></button>
+    <button class="ibtn" id="share" title="Copy a link to this view" aria-label="Copy a link to this view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg></button>
+    <button class="ibtn" id="guidebtn" title="Guide (?)" aria-label="Open the guide" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7"/><path d="M12 17h.01"/></svg></button>
+    <button class="ibtn" id="railtoggle" aria-pressed="true" title="Show or hide the panel (L)" aria-label="Show or hide the panel" aria-controls="rail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M15 4v16"/></svg></button>
   </div>
   <div class="progress" id="progress"><i></i></div>
 </header>
@@ -401,24 +423,24 @@
   <div class="handle" id="handle" aria-hidden="true"></div>
   <nav class="tabs" role="tablist">
     <button id="tab-layers" role="tab" aria-selected="true" aria-controls="pane-layers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 8 12 13l9.5-5L12 3Z"/><path d="m2.5 12.5 9.5 5 9.5-5"/><path d="m2.5 17 9.5 5 9.5-5"/></svg>Layers</button>
-    <button id="tab-lineage" role="tab" aria-selected="false" aria-controls="pane-lineage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2"/><circle cx="5" cy="19.5" r="2"/><circle cx="19" cy="19.5" r="2"/><circle cx="12" cy="19.5" r="2"/><path d="M12 6.5v5M12 11.5 5 17.5M12 11.5l7 6M12 11.5v6"/></svg>Lineages</button>
-    <button id="tab-selection" role="tab" aria-selected="false" aria-controls="pane-selection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Selection</button>
-    <button id="tab-sources" role="tab" aria-selected="false" aria-controls="pane-sources"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5v-16Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v4H6.5A2.5 2.5 0 0 1 4 20.5Z"/></svg>Sources</button>
+    <button id="tab-lineage" role="tab" aria-selected="false" aria-controls="pane-lineage" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.5" r="2"/><circle cx="5" cy="19.5" r="2"/><circle cx="19" cy="19.5" r="2"/><circle cx="12" cy="19.5" r="2"/><path d="M12 6.5v5M12 11.5 5 17.5M12 11.5l7 6M12 11.5v6"/></svg>Lineages</button>
+    <button id="tab-selection" role="tab" aria-selected="false" aria-controls="pane-selection" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Selection</button>
+    <button id="tab-sources" role="tab" aria-selected="false" aria-controls="pane-sources" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5v-16Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v4H6.5A2.5 2.5 0 0 1 4 20.5Z"/></svg>Sources</button>
   </nav>
   <div class="panes">
-    <div class="pane" id="pane-layers" role="tabpanel">
+    <div class="pane" id="pane-layers" role="tabpanel" aria-labelledby="tab-layers" tabindex="0">
       <div class="sect"><h2>Evidence layers</h2>
         <p class="lead">Every point is a record from a published dataset. Switch a layer on to load it.</p>
         <div id="layers"></div></div>
       <div class="sect"><h2>Date range</h2>
-        <div class="frow"><input class="inp" type="number" id="rmin" min="0" max="300000" step="100" value="0" aria-label="Youngest bound, years before present">
-          <span>to</span>
+        <div class="frow"><label for="rmin">From</label><input class="inp" type="number" id="rmin" min="0" max="300000" step="100" value="0" aria-label="Youngest bound, years before present">
+          <label for="rmax">to</label>
           <input class="inp" type="number" id="rmax" min="0" max="300000" step="100" value="300000" aria-label="Oldest bound, years before present">
           <span>years BP</span></div>
         <div class="presets" id="presets"></div>
         <p class="note">Records outside the range are removed from every layer; the timeline then plays inside it.</p></div>
     </div>
-    <div class="pane" id="pane-lineage" role="tabpanel" hidden>
+    <div class="pane" id="pane-lineage" role="tabpanel" aria-labelledby="tab-lineage" tabindex="0" hidden>
       <div class="sect"><h2>Lineage tree</h2>
         <div class="ctl"><label>Marker <small>which parent line the tree follows</small></label>
           <div class="seg" role="group"><button id="mY" aria-pressed="true">Y-DNA · paternal</button><button id="mM" aria-pressed="false">mtDNA · maternal</button></div></div>
@@ -433,14 +455,14 @@
         <div id="legend"></div>
         <p class="note">Click a group to hide or show its branches on the globe.</p></div>
     </div>
-    <div class="pane" id="pane-selection" role="tabpanel" hidden>
+    <div class="pane" id="pane-selection" role="tabpanel" aria-labelledby="tab-selection" tabindex="0" hidden>
       <div class="sect" id="selempty"></div>
       <div class="sect" id="s-rec" hidden><h2>Record</h2><div class="card" id="recins"></div></div>
       <div class="sect" id="s-dossier" hidden><h2>Lineage</h2><div class="card" id="dossier"></div></div>
       <div class="sect" id="s-path" hidden><h2>Route from the root</h2><div class="card" id="pathcard"></div></div>
       <div class="sect" id="s-near" hidden><h2>Nearby records</h2><div id="query"></div></div>
     </div>
-    <div class="pane" id="pane-sources" role="tabpanel" hidden>
+    <div class="pane" id="pane-sources" role="tabpanel" aria-labelledby="tab-sources" tabindex="0" hidden>
       <div class="sect"><h2>About</h2>
         <p class="lead"><b>The points are evidence. The arcs are inference.</b> Every point is a real record from a published
           dataset; the arcs between clades are reconstructed from those records, not observed. A clade's position is a summary
@@ -450,7 +472,7 @@
           <button class="btn" id="aboutguide">Guide</button></div></div>
       <div class="sect"><h2>Sampling coverage</h2>
         <p class="lead">Dated records per millennium on a log scale, for every loaded layer.</p>
-        <canvas id="cov" width="640" height="380"></canvas>
+        <canvas id="cov" width="640" height="380" role="img" aria-label="Dated records per millennium for each loaded layer, on a log scale"></canvas>
         <div class="covleg" id="covleg"></div>
         <p class="covtip" id="covtip">Hover the chart to read counts.</p>
         <p class="note warn"><b>This chart is the sampling-bias check.</b> Where a curve collapses, that is where nobody has dug,
@@ -462,22 +484,22 @@
 
 <div class="timeline" id="timeline" aria-label="Time">
   <div class="transport">
-    <button class="pbtn" id="play" aria-pressed="false" title="Play (space)"></button>
-    <button class="ibtn sm" id="rewind" title="Back to 300,000 years ago"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v14"/><path d="M19 5 9 12l10 7V5Z" fill="currentColor" stroke="none"/></svg></button>
+    <button class="pbtn" id="play" aria-pressed="false" title="Play (space)" aria-label="Play"></button>
+    <button class="ibtn sm" id="rewind" title="Back to 300,000 years ago" aria-label="Back to 300,000 years ago"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5v14"/><path d="M19 5 9 12l10 7V5Z" fill="currentColor" stroke="none"/></svg></button>
     <div class="readout"><span class="bigyear" id="year">Present day</span><span class="ycap" id="ycap"></span></div>
     <div class="epoch" id="epoch"></div>
     <div class="tright">
       <div class="seg mini" role="group" aria-label="Time mode">
         <button id="tmodeA" aria-pressed="true" title="Records stay once the timeline reaches them">Accumulate</button>
         <button id="tmodeW" aria-pressed="false" title="Only records dated within ±1,500 years of now">Window</button></div>
-      <button class="ibtn sm mob" id="tmodeM" aria-pressed="false" title="Window mode: only records dated within ±1,500 years of now"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 4H5v16h3M16 4h3v16h-3M12 8v8"/></svg></button>
+      <button class="ibtn sm mob" id="tmodeM" aria-pressed="false" title="Window mode: only records dated within ±1,500 years of now" aria-label="Window mode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8 4H5v16h3M16 4h3v16h-3M12 8v8"/></svg></button>
       <select class="dd" id="speed" aria-label="Playback speed">
         <option value="0.35">¼× speed</option><option value="0.7">½× speed</option>
         <option value="1.4" selected>1× speed</option><option value="3">2× speed</option><option value="6">4× speed</option>
       </select>
     </div>
   </div>
-  <div class="strata" id="strata">
+  <div class="strata" id="strata" role="group" aria-label="Timeline">
     <canvas id="stratacv" aria-hidden="true"></canvas>
     <div class="hovertag" id="hovertag" hidden><span></span></div>
     <div class="playhead" id="playhead"><span class="phlabel" id="phlabel">now</span></div>
@@ -488,7 +510,7 @@
 
 <div class="veil" id="veil" hidden>
   <div class="welcome" role="dialog" aria-modal="true" aria-labelledby="wtitle" tabindex="-1">
-    <button class="ibtn x" id="veilclose" title="Close (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <button class="ibtn x" id="veilclose" title="Close (Esc)" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
     <div id="w-welcome" style="display:contents">
       <h1 id="wtitle">Deep Ancestry Atlas</h1>
       <p class="thesis">262,000 dated records — ancient genomes, radiocarbon dates, cities, roads, languages — on one globe,
@@ -535,7 +557,7 @@
     </div>
   </div>
 </div>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script>
 "use strict";
@@ -1055,6 +1077,17 @@ const ICO={
  table:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>'
 };
 const ASMT_NAMES=["Pass","Provisional / merge","Questionable","Critical"];
+/* data colours are validated for marks, not for text: as text they get mixed toward bone until they clear 4.5:1 on the sky */
+const _tc={},SKY=[8,11,20],BONE=[237,233,225];
+function _lum(c){const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};return 0.2126*f(c[0])+0.7152*f(c[1])+0.0722*f(c[2]);}
+function txtCol(hex){
+  if(_tc[hex])return _tc[hex];
+  const c=[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)],lb=_lum(SKY);
+  let out=hex;
+  for(let m=0;m<=0.7;m+=0.05){const mix=c.map((v,i)=>Math.round(v*(1-m)+BONE[i]*m));
+    if((_lum(mix)+0.05)/(lb+0.05)>=4.5){out="#"+mix.map(v=>v.toString(16).padStart(2,"0")).join("");break;}}
+  return _tc[hex]=out;
+}
 const ASMT_COL=["#45a903","#45a903","#c98500","#c91304"];
 const RAILW=352;
 let TOPH=56,TLH=142;
@@ -1063,10 +1096,15 @@ let AADRN=19029;
 /* ===================== panel & tabs ===================== */
 const TABS=["layers","lineage","selection","sources"];
 function showTab(t){
-  TABS.forEach(x=>{$("tab-"+x).setAttribute("aria-selected",String(x===t));$("pane-"+x).hidden=(x!==t);});
+  TABS.forEach(x=>{const b=$("tab-"+x);b.setAttribute("aria-selected",String(x===t));b.tabIndex=x===t?0:-1;$("pane-"+x).hidden=(x!==t);});
   if(t==="sources")drawCoverage();
 }
 TABS.forEach(t=>$("tab-"+t).onclick=()=>showTab(t));
+document.querySelector(".tabs").addEventListener("keydown",e=>{
+  const i=TABS.findIndex(t=>$("tab-"+t)===document.activeElement);if(i<0)return;
+  let j=null;if(e.key==="ArrowRight")j=(i+1)%TABS.length;else if(e.key==="ArrowLeft")j=(i+TABS.length-1)%TABS.length;
+  else if(e.key==="Home")j=0;else if(e.key==="End")j=TABS.length-1;
+  if(j==null)return;e.preventDefault();showTab(TABS[j]);$("tab-"+TABS[j]).focus();});
 const isMobile=()=>innerWidth<=880;
 function railOpen(){return !$("rail").classList.contains("hide");}
 function setRail(open){
@@ -1086,7 +1124,7 @@ function reveal(t){showTab(t);if(!railOpen())setRail(true);const p=$("pane-"+t);
 let toastT=null;
 function toast(msg){const t=$("toast");t.textContent=msg;t.hidden=false;
   requestAnimationFrame(()=>t.classList.add("on"));
-  clearTimeout(toastT);toastT=setTimeout(()=>{t.classList.remove("on");setTimeout(()=>{t.hidden=true;},300);},1800);}
+  clearTimeout(toastT);toastT=setTimeout(()=>{t.classList.remove("on");setTimeout(()=>{t.hidden=true;},300);},2600);}
 async function copyText(s,btn,label){
   try{await navigator.clipboard.writeText(s);}
   catch(e){const ta=document.createElement("textarea");ta.value=s;ta.style.position="fixed";ta.style.opacity="0";
@@ -1108,6 +1146,7 @@ function setTime(p,fromSlider){
   $("epoch").textContent=present?"":epochOf(NOW);
   const ph=$("playhead");ph.style.left=(PT*100).toFixed(3)+"%";ph.classList.toggle("flip",PT>0.86);
   $("phlabel").textContent=present?"now":a;
+  scrub.setAttribute("aria-valuetext",present?"Present day":a+" years before present, "+epochOf(NOW));
   URLSTATE.dirty();
 }
 scrub.addEventListener("input",()=>{playing=false;paintPlay();setTime(+scrub.value/1000,true);});
@@ -1115,7 +1154,7 @@ scrub.addEventListener("input",()=>{playing=false;paintPlay();setTime(+scrub.val
  $("ticks").innerHTML=marks.map(m=>{const pc=(age2p(m)*100).toFixed(2);
   const l=m===0?"now":(m/1000)+"k";return `<i style="left:${pc}%" data-m="${m}">${l}</i>`;}).join("");})();
 function paintPlay(){const b=$("play");b.setAttribute("aria-pressed",String(playing));
-  b.innerHTML=playing?ICO.pause:ICO.play;b.title=playing?"Pause (space)":"Play (space)";}
+  b.innerHTML=playing?ICO.pause:ICO.play;b.title=playing?"Pause (space)":"Play (space)";b.setAttribute("aria-label",playing?"Pause":"Play");}
 function togglePlay(){if(!playing&&PT>=0.999)setTime(0);playing=!playing;paintPlay();}
 $("play").onclick=togglePlay;
 $("rewind").onclick=()=>{setTime(0);playing=false;paintPlay();};
@@ -1129,7 +1168,9 @@ function hideHint(){}
  s.addEventListener("pointermove",e=>{const r=s.getBoundingClientRect();
    const p=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),a=p2age(p),f=fmtAge(a);
    tag.hidden=false;tag.style.left=(p*100)+"%";tag.classList.toggle("flip",p>0.8);
-   sp.textContent=(f==="present"?"now":f+" BP")+" · "+epochOf(a);});
+   const k=Math.min(SBINS-1,Math.floor(p*SBINS));
+   const counts=STRATA.series.map(s=>`${esc(s.name)} ${fmtN(s.raw[k])}`).join(" · ");
+   sp.innerHTML=`<b>${f==="present"?"now":f+" BP"}</b> ${esc(epochOf(a))}${counts?`<br>${counts}`:""}`;});
  s.addEventListener("pointerleave",()=>{tag.hidden=true;});})();
 
 /* ===================== strata band ===================== */
@@ -1151,7 +1192,7 @@ function buildStrata(){
     for(let k=0;k<SBINS;k++){sm[k]=(a[Math.max(0,k-1)]+2*a[k]+a[Math.min(SBINS-1,k+1)])/4;if(sm[k]>mx)mx=sm[k];}
     const norm=new Float32Array(SBINS),lm=Math.log(1+mx);
     for(let k=0;k<SBINS;k++)norm[k]=Math.log(1+sm[k])/lm;
-    STRATA.series.push({k:L.k,c:L.c,norm,dated});
+    STRATA.series.push({k:L.k,name:L.name,c:L.c,norm,raw:a,dated});
   }
   drawStrata();
 }
@@ -1161,7 +1202,7 @@ function drawStrata(){
   if(c.width!==W||c.height!==H){c.width=W;c.height=H;}
   const ctx=c.getContext("2d");ctx.clearRect(0,0,W,H);
   const X=p=>p*W;
-  ctx.font=`500 ${9.5*u}px "Instrument Sans",system-ui,sans-serif`;ctx.textBaseline="top";
+  ctx.font=`500 ${10*u}px "Instrument Sans",system-ui,sans-serif`;ctx.textBaseline="top";
   if("letterSpacing" in ctx)ctx.letterSpacing=(0.9*u)+"px";
   for(let i=0;i<EPOCHS.length-1;i++){
     const x0=X(age2p(EPOCHS[i][0])),x1=X(age2p(EPOCHS[i+1][0]));
@@ -1345,7 +1386,7 @@ function paintDossier(){
   const chain=ancestry(n),g=n.gidx>=0?GRP[MARK][n.gidx]:null,d=$("dossier");
   d.className="card sel";d.style.setProperty("--c",n.col);
   d.innerHTML=`<div class="dh"><span class="kind">${MARK==="y"?"Y-DNA":"mtDNA"} clade · ${SRC==="obs"?"observed":"reference"}</span>
-    <span class="code" style="color:${n.col}">${esc(n.title||n.id)}</span>
+    <span class="code" style="color:${txtCol(n.col)}">${esc(n.title||n.id)}</span>
     <span class="when">${fmtAge(n.bp)} BP · ${SRC==="obs"?"oldest sampled member":"published age"}</span></div>
    <div class="db">${n.blurb?`<p>${esc(n.blurb)}</p>`:""}
      <dl class="kv"><dt>Group</dt><dd>${g?esc(g.n):"unassigned"}</dd>
@@ -1371,7 +1412,7 @@ function paintRec(){
   el.className="card sel";el.style.setProperty("--c",L.c);
   const nm=recName(L,r)||L.name;
   el.innerHTML=`<div class="dh"><span class="kind">${L.name}${L.classes.length>1?" · "+L.classes[L.classOf(L.fl[i])]:""}</span>
-     <span class="code" style="color:${L.c};font-size:22px">${esc(nm)}</span>
+     <span class="code" style="color:${txtCol(L.c)};font-size:22px">${esc(nm)}</span>
      <span class="when">${bp>0?fmtAge(bp)+" BP"+(unc?" ± "+fmtN(unc):""):"undated"}</span></div>
    <div class="db"><dl class="kv">
      <dt>Position</dt><dd class="mono">${L.lat[i].toFixed(4)}, ${L.lon[i].toFixed(4)}</dd>
@@ -1410,7 +1451,7 @@ function paintPath(){
   const flat=hops.slice(1).filter(h=>h.yrs<=0).length;
   el.innerHTML=
    `<div class="dh"><span class="kind">${hops.length} waypoints · ${fmtN(Math.round(tot))} km great-circle</span>
-      <span class="code" style="color:${SELN.col};font-size:22px">${esc(hops[0].n.id)} → ${esc(SELN.id)}</span>
+      <span class="code" style="color:${txtCol(SELN.col)};font-size:22px">${esc(hops[0].n.id)} → ${esc(SELN.id)}</span>
       <span class="when">${fmtAge(hops[0].n.bp)} → ${fmtAge(SELN.bp)} BP · ${fmtN(Math.round(span))} years</span></div>
     <div class="db">
       <dl class="kv">
@@ -1427,7 +1468,7 @@ function paintPath(){
         travelled. Neither is the answer; the gap is how much of the route is supplied by the choice of statistic rather than
         by the data.</p>`:""}
       <div class="steps">${hops.map((h,i)=>
-        `<div class="step" style="--c:${h.n.col}"><span class="num">${i+1}</span>
+        `<div class="step" style="--c:${txtCol(h.n.col)}"><span class="num">${i+1}</span>
            <button class="nm" data-n="${h.n.idx}">${esc(h.n.title||h.n.id)}</button>
            <span class="d">${fmtAge(h.n.bp)} BP</span>
            <span class="meta">${h.n.lat.toFixed(1)}, ${h.n.lon.toFixed(1)}${
@@ -1463,10 +1504,10 @@ function paintWaypoints(mvp,w,h,camv){
     const ends=(i===0||i===hops.length-1);
     if(!ends&&placed.some(q=>Math.abs(q.y-s.y)<20&&s.x>q.x-26&&s.x<q.x+140)){d.style.display="none";return;}
     placed.push(s);
-    d.style.display="";d.style.color=n.col;
+    d.style.display="";d.style.color=txtCol(n.col);
     d.style.transform=`translate(-50%,-50%) translate(${s.x.toFixed(1)}px,${s.y.toFixed(1)}px)`;
     d.querySelector(".dot").textContent=String(i+1);
-    d.querySelector(".cap").innerHTML=`<span style="color:${n.col}">${esc(n.id)}</span><i>${fmtAge(n.bp)} BP</i>`;
+    d.querySelector(".cap").innerHTML=`<span>${esc(n.id)}</span><i>${fmtAge(n.bp)} BP</i>`;
   });
 }
 
@@ -1700,14 +1741,13 @@ function paintLabels(mvp,w,h,camv){
     if(i>=out.length){d.style.display="none";return;}
     const {n,s}=out[i],t=String(n.title||n.id).split(" (");
     d.style.display="";d.style.transform=`translate(-50%,-50%) translate(${s.x.toFixed(1)}px,${(s.y-13).toFixed(1)}px)`;
-    d.style.color=n.col===STEM?"#8E97B2":n.col;d.className="lbl"+(n===SELN?" sel":"");
+    d.style.color=txtCol(n.col===STEM?"#8E97B2":n.col);d.className="lbl"+(n===SELN?" sel":"");
     d.innerHTML=`${esc(t[0])}${t[1]?` <i>${esc(t[1].replace(")",""))}</i>`:""}`;});
 }
 
 /* ===================== render ===================== */
 function railWidth(){return document.body.classList.contains("railopen")&&!isMobile()?RAILW:0;}
-function readChrome(){const cs=getComputedStyle(document.documentElement);
-  TOPH=parseFloat(cs.getPropertyValue("--top"))||56;TLH=parseFloat(cs.getPropertyValue("--tl"))||142;}
+function readChrome(){TOPH=$("topbar").offsetHeight||56;TLH=$("timeline").offsetHeight||142;}
 function resize(){DPR=Math.min(devicePixelRatio||1,2);
  const w=Math.floor(innerWidth*DPR),h=Math.floor(innerHeight*DPR);
  if(cv.width!==w||cv.height!==h){cv.width=w;cv.height=h;cv.style.width=innerWidth+"px";cv.style.height=innerHeight+"px";readChrome();}
@@ -1826,7 +1866,7 @@ function paintSearch(items,q){
     a place such as <b>Uruk</b>, or a period such as <b>Neolithic</b>.</div>`;openSearch();return;}
   let k=0;
   QRES.innerHTML=items.map(it=>it.g?`<div class="qg">${it.g}${it.note?' <span class="spin"></span>':""}</div>`:
-    `<button class="qi" role="option" data-k="${k}" aria-selected="${k++===QSEL}">
+    `<button class="qi" role="option" id="qi-${k}" data-k="${k}" aria-selected="${k++===QSEL}">
        <span class="sw" style="background:${it.c};color:${it.c}"></span><span class="n">${hl(it.name,q)}</span>
        <span class="m">${esc(it.meta)}</span></button>`).join("");
   QRES.querySelectorAll(".qi").forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>pickSearch(+b.dataset.k);});
@@ -1845,11 +1885,20 @@ async function pickSearch(k){
     buildStrata();selectRec({L,i:it.i});}
 }
 function openSearch(){QRES.hidden=false;Q.setAttribute("aria-expanded","true");}
-function closeSearch(){QRES.hidden=true;Q.setAttribute("aria-expanded","false");}
+function closeSearch(){QRES.hidden=true;Q.setAttribute("aria-expanded","false");Q.removeAttribute("aria-activedescendant");}
 function markSel(){QRES.querySelectorAll(".qi").forEach(b=>{const on=+b.dataset.k===QSEL;
-  b.setAttribute("aria-selected",String(on));if(on)b.scrollIntoView({block:"nearest"});});}
-Q.addEventListener("input",()=>{clearTimeout(QT);QT=setTimeout(()=>runSearch(Q.value),60);});
-Q.addEventListener("focus",()=>{if(Q.value.trim())runSearch(Q.value);});
+  b.setAttribute("aria-selected",String(on));if(on)b.scrollIntoView({block:"nearest"});});
+  if(QSEL>=0)Q.setAttribute("aria-activedescendant","qi-"+QSEL);else Q.removeAttribute("aria-activedescendant");}
+Q.addEventListener("input",()=>{clearTimeout(QT);QT=setTimeout(()=>{Q.value.trim()?runSearch(Q.value):paintSuggest();},60);});
+Q.addEventListener("focus",()=>{if(Q.value.trim())runSearch(Q.value);else paintSuggest();});
+function paintSuggest(){
+  const tries=[["R1b","Y-DNA lineage"],["U5","mtDNA lineage"],["Uruk","place"],["Denisova","sample"],["Neolithic","period"]];
+  QITEMS=[];QSEL=-1;
+  QRES.innerHTML=`<div class="qg">Try searching for</div>`+tries.map(([q,m])=>
+    `<button class="qi" data-q="${esc(q)}"><span class="sw" style="background:var(--ink3);color:transparent"></span><span class="n">${esc(q)}</span><span class="m">${m}</span></button>`).join("");
+  QRES.querySelectorAll(".qi").forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>{Q.value=b.dataset.q;runSearch(Q.value);Q.focus();};});
+  openSearch();
+}
 Q.addEventListener("keydown",e=>{
   if(e.key==="Escape"){closeSearch();Q.blur();return;}
   if(QRES.hidden)return;
@@ -1864,7 +1913,8 @@ function showVeil(mode){
   $("w-welcome").hidden=mode!=="welcome";$("w-guide").hidden=mode!=="guide";
   setTimeout(()=>{v.querySelector(".welcome").focus({preventScroll:true});},60);
 }
-function closeVeil(){$("veil").hidden=true;try{localStorage.setItem("daa.seen","1");}catch(e){}}
+function closeVeil(){const v=$("veil");if(v.hidden)return;const inside=v.contains(document.activeElement);v.hidden=true;
+  if(inside)$("guidebtn").focus({preventScroll:true});try{localStorage.setItem("daa.seen","1");}catch(e){}}
 $("veilclose").onclick=closeVeil;
 $("veil").addEventListener("pointerdown",e=>{if(e.target===$("veil"))closeVeil();});
 $("guidebtn").onclick=()=>showVeil("guide");
@@ -1944,6 +1994,7 @@ addEventListener("keydown",e=>{
     if(!QRES.hidden){closeSearch();return;}
     if(typing)return;
     if(SELN||SELREC){selectNode(null);return;}
+    if(isMobile()&&railOpen()){setRail(false);return;}
     return;}
   if(typing||e.metaKey||e.ctrlKey||e.altKey)return;
   if(e.key==="?"){e.preventDefault();$("veil").hidden?showVeil("guide"):closeVeil();return;}
@@ -1956,13 +2007,13 @@ addEventListener("keydown",e=>{
 });
 
 /* ===================== boot ===================== */
-function progress(p,msg){const el=$("progress");el.querySelector("i").style.width=(p*100)+"%";
+function progress(p,msg){const el=$("progress");el.querySelector("i").style.transform="scaleX("+p+")";
   if(msg)$("wstat").textContent=msg;
   if(p>=1){el.classList.add("done");setTimeout(()=>{el.hidden=true;},900);}}
 (async function boot(){
   readChrome();
   camDist=innerWidth/innerHeight<0.8?4.4:2.6;
-  if(isMobile())Q.placeholder="Search the atlas…";
+  if(isMobile())Q.placeholder=innerWidth<=430?"Search":"Search the atlas…";
   setRail(!isMobile());
   setTime(1);paintPlay();paintProv();paintLayers();paintSelection();
   let seen=false;try{seen=localStorage.getItem("daa.seen")==="1";}catch(e){}
